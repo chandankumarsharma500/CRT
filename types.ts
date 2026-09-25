@@ -85,6 +85,10 @@ export interface DhanConfig {
   clientId: string;
   accessToken?: string;
   environment: DhanEnv;
+  redirectUri?: string;
+  authCode?: string;
+  enableCorsProxy?: boolean;
+  corsProxyUrl?: string;
 }
 
 export interface DhanProfile {
@@ -104,17 +108,88 @@ export interface DhanHolding {
   exchange: string;
 }
 
+export type WebSocketState = 'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'RECONNECTING' | 'FALLBACK_REST';
+
+export interface BrokerClosingPrice {
+  instrumentKey: string;
+  symbol: string;
+  name: string;
+  lastClose: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  lastPrice: number;
+  timestamp: number;
+  source: 'WEBSOCKET' | 'REST_API' | 'REST_FALLBACK_CACHE';
+  change?: number;
+  percentChange?: number;
+}
+
+export type UpstoxClosingPrice = BrokerClosingPrice;
+
 export interface UpstoxConfig {
   apiKey: string;
   accessToken: string;
   apiSecret?: string;
   redirectUri?: string;
+  authCode?: string;
+  enableCorsProxy?: boolean;
+  corsProxyUrl?: string;
 }
 
 export interface ZerodhaConfig {
   apiKey: string;
   apiSecret: string;
   accessToken: string;
+  requestToken?: string;
+  redirectUri?: string;
+  enableCorsProxy?: boolean;
+  corsProxyUrl?: string;
+}
+
+export interface AngelOneConfig {
+  clientCode: string;
+  password?: string;
+  apiKey: string;
+  totpSecret?: string;
+  jwtToken?: string;
+  feedToken?: string;
+  refreshToken?: string;
+  enableCorsProxy?: boolean;
+  corsProxyUrl?: string;
+}
+
+export interface UnifiedBrokerService {
+  brokerId: BrokerId;
+  getBrokerName(): string;
+  isConfigured(): boolean;
+  getWebSocketState(): WebSocketState;
+  connectWebSocket(): Promise<void> | void;
+  disconnectWebSocket(): void;
+  fetchLastAvailableClosingPricesViaRest(): Promise<Record<string, BrokerClosingPrice>>;
+  fetchIndicesMarketData(): Promise<IndexMarketData[]>;
+  getProfile(): Promise<BrokerProfile>;
+  getHoldings(): Promise<BrokerHolding[]>;
+  placeOrder(order: OrderRequest): Promise<any>;
+  getDefaultRedirectUri(): string;
+  getOAuthDialogUrl(apiKeyOverride?: string, redirectUriOverride?: string): string;
+  checkForRedirectCode(): { code: string | null; state: string | null };
+  exchangeCodeForAccessToken?(code: string, ...args: any[]): Promise<{ success: boolean; accessToken?: string; message: string }>;
+  subscribe(callback: (data: Record<string, BrokerClosingPrice>, state: WebSocketState) => void): () => void;
+  getLastClosingPrice(indexId: string): number;
+  getLastAvailablePrice(indexId: string): number;
+  isCorsRestricted?(): boolean;
+  enableCorsProxy?(enabled: boolean, proxyUrl?: string): void;
+  getClosingPrices?(): Record<string, BrokerClosingPrice>;
+  loginWithCredentials?(): Promise<{ success: boolean; jwtToken?: string; message: string }>;
+}
+
+export interface MultiBrokerStreamData {
+  brokerId: BrokerId;
+  brokerName: string;
+  state: WebSocketState;
+  prices: Record<string, BrokerClosingPrice>;
+  updatedAt: number;
 }
 
 export interface BrokerHolding {

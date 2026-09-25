@@ -1,74 +1,78 @@
-import { dhanService, ALL_INDICES } from './dhanService';
+import { dhanService } from './dhanService';
 import { zerodhaService } from './zerodhaService';
 import { upstoxService } from './upstoxService';
+import { angelOneService } from './angelOneService';
 import { mobileBackendService } from './mobileBackendService';
 import { brokerRegistry } from './brokerRegistry';
-import { BrokerId, OrderRequest, BrokerProfile, BrokerHolding, IndexMarketData } from '../types';
+import { 
+  BrokerId, 
+  OrderRequest, 
+  BrokerProfile, 
+  BrokerHolding, 
+  IndexMarketData, 
+  UnifiedBrokerService, 
+  WebSocketState, 
+  BrokerClosingPrice 
+} from '../types';
 
-export interface UnifiedBrokerService {
-  getActiveBrokerId(): BrokerId;
-  getBrokerName(): string;
-  isConfigured(): boolean;
-  getProfile(): Promise<BrokerProfile>;
-  getHoldings(): Promise<BrokerHolding[]>;
-  placeOrder(order: OrderRequest): Promise<any>;
-  fetchIndicesMarketData(): Promise<IndexMarketData[]>;
-}
+export const getBrokerService = (requestedId?: BrokerId): UnifiedBrokerService => {
+  const activeId = requestedId || brokerRegistry.getActiveBrokerId();
 
-export const getBrokerService = (): UnifiedBrokerService => {
-  const activeId = brokerRegistry.getActiveBrokerId();
+  if (activeId === 'UPSTOX') {
+    return upstoxService;
+  }
+  if (activeId === 'DHAN') {
+    return dhanService;
+  }
+  if (activeId === 'ZERODHA') {
+    return zerodhaService;
+  }
+  if (activeId === 'ANGELONE') {
+    return angelOneService;
+  }
+
+  // Universal Fallback Service for other brokers (e.g. GROWW, FYERS, KOTAK_NEO, etc.)
   const brokerMeta = brokerRegistry.getBrokerMetadata(activeId);
   const isConfig = brokerRegistry.isConfigured(activeId);
 
   return {
-    getActiveBrokerId: () => activeId,
+    brokerId: activeId,
     getBrokerName: () => brokerMeta.name,
     isConfigured: () => isConfig,
+    getWebSocketState: () => (isConfig ? 'CONNECTED' : 'DISCONNECTED') as WebSocketState,
+    connectWebSocket: () => {},
+    disconnectWebSocket: () => {},
 
-    getProfile: async () => {
-      if (activeId === 'ZERODHA' && zerodhaService.isConfigured()) {
-        try { return await zerodhaService.getProfile(); } catch (e) { /* fallback */ }
-      }
-      if (activeId === 'UPSTOX' && upstoxService.isConfigured()) {
-        try { return await upstoxService.getProfile(); } catch (e) { /* fallback */ }
-      }
-      if (activeId === 'DHAN' && dhanService.isConfigured()) {
-        try { return await dhanService.getProfile(); } catch (e) { /* fallback */ }
-      }
+    fetchLastAvailableClosingPricesViaRest: async (): Promise<Record<string, BrokerClosingPrice>> => {
+      return await dhanService.fetchLastAvailableClosingPricesViaRest();
+    },
 
-      // Universal profile from credentials
+    fetchIndicesMarketData: async (): Promise<IndexMarketData[]> => {
+      const raw = await dhanService.fetchIndicesMarketData();
+      const sourceName = isConfig 
+        ? `${brokerMeta.name} API Feed` 
+        : `${brokerMeta.name} (Simulated Feed)`;
+      return raw.map(i => ({ ...i, source: sourceName }));
+    },
+
+    getProfile: async (): Promise<BrokerProfile> => {
       const creds = brokerRegistry.getCredentials(activeId);
-      const identifier = creds.clientId || creds.userId || creds.clientCode || creds.accountId || creds.appId || (creds.apiKey ? `${creds.apiKey.slice(0, 8)}...` : 'ACTIVE_OPERATOR');
+      const identifier = creds.clientId || creds.userId || creds.clientCode || creds.accountId || creds.appId || (creds.apiKey ? `${creds.apiKey.slice(0, 8)}...` : 'ACTIVE_TRADER');
       return {
         name: `${brokerMeta.name} Terminal Account`,
         email: `${identifier.toLowerCase()}@${activeId.toLowerCase()}.bridge`,
         client_id: identifier,
         userType: 'HIGH_PRECISION_TRADER',
-        broker: (activeId === 'DHAN' || activeId === 'UPSTOX' || activeId === 'ZERODHA') ? activeId : undefined
+        broker: undefined
       };
     },
 
-    getHoldings: async () => {
-      if (activeId === 'ZERODHA' && zerodhaService.isConfigured()) {
-        try { return await zerodhaService.getHoldings(); } catch (e) { /* fallback */ }
-      }
-      if (activeId === 'DHAN' && dhanService.isConfigured()) {
-        try { return await dhanService.getHoldings(); } catch (e) { /* fallback */ }
-      }
-      return [];
-    },
+    getHoldings: async (): Promise<BrokerHolding[]> => [],
 
-    placeOrder: async (order: OrderRequest) => {
+    placeOrder: async (order: OrderRequest): Promise<any> => {
       if (mobileBackendService.isEnabled()) {
         return await mobileBackendService.placeOrderViaCloud(activeId as any, order);
       }
-      if (activeId === 'ZERODHA' && zerodhaService.isConfigured()) {
-        return await zerodhaService.placeOrder(order);
-      }
-      if (activeId === 'UPSTOX' && upstoxService.isConfigured()) {
-        return await upstoxService.placeOrder(order);
-      }
-      // Dhan or universal order dispatch
       return {
         orderId: `ORD-${activeId}-${Date.now()}`,
         status: 'SUCCESS',
@@ -76,19 +80,21 @@ export const getBrokerService = (): UnifiedBrokerService => {
       };
     },
 
-    fetchIndicesMarketData: async () => {
-      // Base calculation with real prices / feed
-      const rawData = await dhanService.fetchIndicesMarketData();
-      
-      // Tag the data source with the user's active configured broker
-      const sourceName = isConfig 
-        ? `${brokerMeta.name} API Feed` 
-        : `${brokerMeta.name} (Simulated Feed)`;
+    getDefaultRedirectUri: () => {
+      if (typeof window !== 'undefined') {
+        const origin = window.location.origin;
+        const pathname = window.location.pathname === '/' ? '' : window.location.pathname;
+        return `${origin}${pathname}`;
+      }
+      return 'http://localhost:3000';
+    },
 
-      return rawData.map(item => ({
-        ...item,
-        source: sourceName
-      }));
+    getOAuthDialogUrl: () => brokerMeta.portalUrl || '#',
+    checkForRedirectCode: () => ({ code: null, state: null }),
+    getLastClosingPrice: (indexId: string) => dhanService.getLastClosingPrice(indexId),
+    getLastAvailablePrice: (indexId: string) => dhanService.getLastAvailablePrice(indexId),
+    subscribe: (callback: (data: Record<string, BrokerClosingPrice>, state: WebSocketState) => void) => {
+      return dhanService.subscribe(callback);
     }
   };
 };
@@ -99,4 +105,30 @@ export const setBroker = (broker: BrokerId) => {
 
 export const getActiveBrokerId = (): BrokerId => {
   return brokerRegistry.getActiveBrokerId();
+};
+
+/**
+ * Multi-Broker Data Streamer
+ * Allows querying quotes or market data from multiple configured brokers simultaneously
+ */
+export const multiBrokerStreamer = {
+  getAvailableBrokers(): UnifiedBrokerService[] {
+    return [upstoxService, dhanService, zerodhaService, angelOneService];
+  },
+
+  async fetchAllConfiguredBrokerQuotes(): Promise<Record<string, Record<string, BrokerClosingPrice>>> {
+    const results: Record<string, Record<string, BrokerClosingPrice>> = {};
+    const brokers: UnifiedBrokerService[] = [upstoxService, dhanService, zerodhaService, angelOneService];
+
+    for (const b of brokers) {
+      if (b.isConfigured()) {
+        try {
+          results[b.brokerId] = await b.fetchLastAvailableClosingPricesViaRest();
+        } catch (e) {
+          console.warn(`Multi-stream quote fetch error for ${b.getBrokerName()}:`, e);
+        }
+      }
+    }
+    return results;
+  }
 };

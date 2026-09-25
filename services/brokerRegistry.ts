@@ -63,10 +63,10 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://upstox.com/developer/api-documentation',
     supportedSegments: ['NSE_EQ', 'NSE_INDEX', 'NFO', 'MCX'],
     fields: [
-      { key: 'apiKey', label: 'Upstox API Key', placeholder: 'e.g. 8492048b-3028-4091...', type: 'text', required: true },
-      { key: 'apiSecret', label: 'API Secret', placeholder: '••••••••••••••••', type: 'password', required: true },
-      { key: 'redirectUri', label: 'Redirect URI', placeholder: 'http://localhost:3000', type: 'text', defaultValue: 'http://localhost:3000' },
-      { key: 'accessToken', label: 'OAuth Access Token', placeholder: 'OAuth 2.0 Bearer access token', type: 'password', required: true }
+      { key: 'apiKey', label: 'Upstox API Key', placeholder: 'e.g. 8492048b-3028-4091...', type: 'text', required: true, help: 'From Upstox Developer Console App' },
+      { key: 'apiSecret', label: 'API Secret', placeholder: '••••••••••••••••', type: 'password', required: true, help: 'Used for OAuth token generation' },
+      { key: 'redirectUri', label: 'Redirect URI (CORS / OAuth)', placeholder: typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:3000', type: 'text', defaultValue: typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:3000', help: 'Must match Upstox App Redirect URL exactly' },
+      { key: 'accessToken', label: 'OAuth Access Token', placeholder: 'OAuth 2.0 Bearer access token', type: 'password', required: true, help: 'Direct token or login via OAuth dialog' }
     ]
   },
   {
@@ -409,17 +409,17 @@ export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
   },
   UPSTOX: {
     brokerId: 'UPSTOX',
-    title: 'Upstox Pro API v2 Guide',
+    title: 'Upstox Pro API v2 (WebSocket & REST Fallback)',
     isFree: true,
-    costDetail: 'FREE Market Data & v2 REST API',
+    costDetail: 'FREE Market Data, WebSocket & v2 REST API',
     officialPortal: 'https://developer.upstox.com',
     steps: [
-      { title: 'Step 1: Upstox Developer Portal', desc: 'developer.upstox.com par apne Upstox number se log in karein.' },
-      { title: 'Step 2: Create App', desc: '"New App" banayein, Redirect URL: "http://localhost:3000" set karein.' },
-      { title: 'Step 3: Copy Credentials', desc: 'Generat hui "API Key" aur "API Secret" copy karein.' },
-      { title: 'Step 4: Daily Access Token', desc: 'Morning login authorize karke Access Token copy karke paste karein.' }
+      { title: 'Step 1: Upstox Developer Portal', desc: 'developer.upstox.com par apne Upstox account se log in karein.' },
+      { title: 'Step 2: Create App with Exact Redirect URL', desc: 'New App banayein aur Redirect URL me current app domain/URL copy karke paste karein (e.g. current domain) taaki redirect_uri_mismatch na ho.' },
+      { title: 'Step 3: Copy API Key & API Secret', desc: 'Dashboard se API Key aur Secret Key copy karein.' },
+      { title: 'Step 4: Generate Access Token / Login Dialog', desc: 'Login Dialog se 1-click authorize karein ya Access Token generate karke yahan paste karein.' }
     ],
-    proTip: 'Upstox v2 API NSE Indices aur Option Chain ke liye fast aur accurate hai.'
+    proTip: 'WebSocket feed disconnected hone par terminal automatic REST API se last available closing price fetch karta hai. CORS safe fallback active rehta hai.'
   },
   FYERS: {
     brokerId: 'FYERS',
@@ -524,11 +524,12 @@ class BrokerRegistryService {
         accessToken: data.accessToken || ''
       }));
     } else if (brokerId === 'UPSTOX') {
+      const defaultRedirect = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:3000';
       localStorage.setItem('upstox_config', JSON.stringify({
         apiKey: data.apiKey || '',
         accessToken: data.accessToken || '',
         apiSecret: data.apiSecret || '',
-        redirectUri: data.redirectUri || 'http://localhost:3000'
+        redirectUri: data.redirectUri || defaultRedirect
       }));
     }
   }

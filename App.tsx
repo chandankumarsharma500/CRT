@@ -11,6 +11,7 @@ import { GlobalPulse } from './components/GlobalPulse';
 import { StrategyLab } from './components/StrategyLab';
 import { CRTStrategy } from './components/CRTStrategy';
 import { SMCLogo } from './components/SMCLogo';
+import { upstoxService } from './services/upstoxService';
 
 type View = 'dashboard' | 'indices' | 'global-pulse' | 'smart-money' | 'crt' | 'rules' | 'backtest' | 'settings' | 'login' | 'analyst' | 'lab';
 
@@ -22,6 +23,14 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('smc_theme');
     return saved ? saved === 'dark' : true;
   });
+
+  useEffect(() => {
+    // Check if user returned from Upstox OAuth redirect URI
+    const { code } = upstoxService.checkForRedirectCode();
+    if (code) {
+      setCurrentView('login');
+    }
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
