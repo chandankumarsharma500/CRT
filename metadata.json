@@ -1,0 +1,12 @@
+{
+  "name": "Copy of SMC Intelligence Elite",
+  "description": "Professional Smart Money Concepts, Vega Divergence, and CRT (Candle Range Theory) trading dashboard with Monthly, Weekly, Daily, 4H, and 1H candle markings, BSL/SSL liquidity sweeps, and 5-minute sniper execution.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
