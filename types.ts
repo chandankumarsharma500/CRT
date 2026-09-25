@@ -43,12 +43,6 @@ export interface IndexMarketData {
   source?: string;
 }
 
-export interface GoogleSheetConfig {
-  enabled: boolean;
-  webhookUrl: string;
-  sheetName: string;
-}
-
 export interface SMCZone {
     id: string;
     symbol: string;
@@ -132,7 +126,51 @@ export interface BrokerHolding {
   exchange: string;
 }
 
-export type BrokerId = 'DHAN' | 'UPSTOX' | 'ZERODHA';
+export type BrokerId = 
+  | 'DHAN' 
+  | 'ZERODHA' 
+  | 'ANGELONE' 
+  | 'UPSTOX' 
+  | 'GROWW' 
+  | 'FYERS' 
+  | 'KOTAK_NEO' 
+  | 'FINVASIA' 
+  | 'ALICE_BLUE' 
+  | 'ICICI_BREEZE' 
+  | 'FIVE_PAISA' 
+  | 'PAYTM_MONEY' 
+  | 'HDFC_SKY' 
+  | 'MOTILAL' 
+  | 'FLAT_TRADE' 
+  | 'BINANCE' 
+  | 'BYBIT' 
+  | 'IBKR' 
+  | 'ALPACA' 
+  | 'METATRADER' 
+  | 'WEBHOOK';
+
+export interface BrokerFieldDefinition {
+  key: string;
+  label: string;
+  placeholder: string;
+  type: 'text' | 'password';
+  required?: boolean;
+  help?: string;
+  defaultValue?: string;
+}
+
+export interface BrokerMetadata {
+  id: BrokerId;
+  name: string;
+  tagline: string;
+  category: 'INDIAN_DISCOUNT' | 'INDIAN_FULLSERVICE' | 'GLOBAL_CRYPTO' | 'WEBHOOK_ALGO';
+  badgeColor: string;
+  logoLetter: string;
+  logoBg: string;
+  fields: BrokerFieldDefinition[];
+  portalUrl?: string;
+  supportedSegments: string[];
+}
 
 export interface TwelveDataConfig {
   apiKey: string;

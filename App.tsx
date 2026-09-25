@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { LayoutDashboard, BookOpen, BarChart, Settings as SettingsIcon, List, Layers, LogIn, TrendingUp, Menu, X, Activity, Terminal, Shield, Zap, Moon, Sun, Globe, FlaskConical, Key, AlertCircle, CheckCircle2, FileArchive, Download, Maximize2 } from 'lucide-react';
+import { LayoutDashboard, BookOpen, BarChart, List, Layers, LogIn, TrendingUp, Menu, X, Activity, Terminal, Shield, Zap, Moon, Sun, Globe, FlaskConical, Key, AlertCircle, CheckCircle2, Maximize2 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { StrategyRules } from './components/StrategyRules';
 import { Backtest } from './components/Backtest';
-import { Settings } from './components/Settings';
 import { IndicesTracker } from './components/IndicesTracker';
 import { SmartMoneyTracker } from './components/SmartMoneyTracker';
 import { BrokerConnect } from './components/BrokerConnect';
 import { FinancialAnalyst } from './components/FinancialAnalyst';
 import { GlobalPulse } from './components/GlobalPulse';
 import { StrategyLab } from './components/StrategyLab';
-import { DownloadZipModal } from './components/DownloadZipModal';
 import { CRTStrategy } from './components/CRTStrategy';
 import { SMCLogo } from './components/SMCLogo';
 
@@ -19,7 +17,6 @@ type View = 'dashboard' | 'indices' | 'global-pulse' | 'smart-money' | 'crt' | '
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [zipModalOpen, setZipModalOpen] = useState(false);
   const [aiKeyStatus, setAiKeyStatus] = useState<boolean>(false);
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('smc_theme');
@@ -70,7 +67,7 @@ const App: React.FC = () => {
       case 'crt': return <CRTStrategy />;
       case 'rules': return <StrategyRules />;
       case 'backtest': return <Backtest />;
-      case 'settings': return <Settings />;
+      case 'settings': 
       case 'login': return <BrokerConnect />;
       case 'analyst': return <FinancialAnalyst />;
       case 'lab': return <StrategyLab />;
@@ -109,20 +106,9 @@ const App: React.FC = () => {
 
         <header className="md:hidden h-20 border-b border-slate-200 dark:border-slate-800/50 flex items-center justify-between px-6 bg-white dark:bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
             <div className="flex items-center gap-3">
-                <div className="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-600/20">
-                  <Activity size={20} className="text-white" />
-                </div>
-                <span className="font-black text-slate-900 dark:text-white text-lg tracking-tighter">SMC <span className="text-indigo-500">QUANT</span></span>
+                <SMCLogo size={36} showText={true} variant="compact" />
             </div>
             <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setZipModalOpen(true)}
-                  className="p-2.5 text-indigo-500 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 flex items-center gap-1.5 text-xs font-bold"
-                  title="Export Code (.ZIP)"
-                >
-                  <FileArchive size={18} />
-                  <span className="hidden sm:inline">ZIP</span>
-                </button>
                 <button 
                   onClick={() => setDarkMode(!darkMode)}
                   className="p-3 text-slate-500 bg-slate-100 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800"
@@ -137,18 +123,8 @@ const App: React.FC = () => {
 
         <aside className={`fixed md:static inset-y-0 left-0 z-50 w-76 bg-white dark:bg-slate-950/40 backdrop-blur-3xl border-r border-slate-200 dark:border-white/5 transform transition-transform duration-500 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
           <div className="h-full flex flex-col p-8">
-            <div className="hidden md:flex items-center gap-4 mb-16 px-2 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-indigo-500/40 blur-lg rounded-2xl group-hover:scale-125 transition-transform duration-500 opacity-0 dark:opacity-100" />
-                <div className="relative bg-indigo-600 p-3 rounded-2xl shadow-xl shadow-indigo-600/30">
-                  <Terminal className="text-white" size={24} />
-                </div>
-              </div>
-              <div>
-                <h1 className="font-black text-2xl text-slate-900 dark:text-white tracking-tighter leading-none">
-                  SMC CORE<br/><span className="text-indigo-500 text-sm font-bold tracking-[0.3em] uppercase">Terminal</span>
-                </h1>
-              </div>
+            <div className="hidden md:flex items-center mb-12 px-1 group cursor-pointer" onClick={() => setCurrentView('dashboard')}>
+              <SMCLogo size={46} showText={true} variant="full" />
             </div>
 
             <nav className="space-y-3 flex-1 overflow-y-auto custom-scrollbar">
@@ -166,15 +142,7 @@ const App: React.FC = () => {
               <NavItem view="rules" icon={BookOpen} label="Manifesto" />
               
               <div className="px-5 mb-4 mt-8 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">Systems</div>
-              <NavItem view="login" icon={LogIn} label="Bridge Access" />
-              <button
-                onClick={() => { setZipModalOpen(true); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 group text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600/10 border border-indigo-500/20 bg-indigo-500/5 shadow-sm"
-              >
-                <FileArchive size={18} className="text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform" />
-                <span className="font-bold text-[11px] uppercase tracking-[0.15em]">Export Code (.ZIP)</span>
-                <span className="ml-auto text-[9px] font-bold bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 px-2 py-0.5 rounded-md">ZIP</span>
-              </button>
+              <NavItem view="login" icon={LogIn} label="All Brokers Hub" />
             </nav>
 
             <div className="mt-auto pt-8 border-t border-slate-200 dark:border-white/5 space-y-4">
@@ -205,7 +173,6 @@ const App: React.FC = () => {
                  <span className="font-bold text-[11px] uppercase tracking-[0.15em]">{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
                </button>
 
-               <NavItem view="settings" icon={SettingsIcon} label="Console Prefs" />
                <div className="px-6 py-4 flex flex-col gap-1 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 group overflow-hidden relative">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 blur-3xl rounded-full" />
                   <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest relative z-10">
@@ -247,8 +214,6 @@ const App: React.FC = () => {
                </button>
              ))}
         </div>
-
-        <DownloadZipModal isOpen={zipModalOpen} onClose={() => setZipModalOpen(false)} />
     </div>
   );
 };

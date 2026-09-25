@@ -157,7 +157,7 @@ class UpstoxApiService {
     return response.json();
   }
 
-  // New method matching Python snippet: fetch_options_data
+  // Real-time option chain data method
   async fetchOptionsData(symbol: string = "BANKNIFTY"): Promise<{ callVega: number; putVega: number; spotPrice: number } | null> {
     if (!this.config) return null;
 

@@ -144,7 +144,7 @@ class TwelveDataService {
 
   /**
    * Fetches historical candles (Time Series)
-   * Corresponds to Python: time_series(symbol, interval, outputsize)
+   * Realtime streaming API: time_series(symbol, interval, outputsize)
    */
   async getCandles(indexId: string, timeframe: 'DAILY' | 'WEEKLY'): Promise<Candle[]> {
       if (!this.config || !this.config.apiKey) return [];

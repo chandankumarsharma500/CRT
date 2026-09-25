@@ -1,10 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Brain, Zap, Loader2, Copy, Check, Terminal, RefreshCw, BarChart3, FileSpreadsheet } from 'lucide-react';
+import { Send, Brain, Zap, Loader2, Copy, Check, Terminal, RefreshCw, BarChart3 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { marked } from 'marked';
 import { dhanService } from '../services/dhanService';
-import { googleSheetService } from '../services/googleSheetService';
 import { IndexMarketData } from '../types';
 
 export const FinancialAnalyst: React.FC = () => {
@@ -17,7 +16,6 @@ export const FinancialAnalyst: React.FC = () => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [latestData, setLatestData] = useState<IndexMarketData | null>(null);
-    const [isSyncing, setIsSyncing] = useState(false);
     const [copiedId, setCopiedId] = useState<number | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,20 +80,6 @@ export const FinancialAnalyst: React.FC = () => {
 
             const aiContent = response.text || "No signal detected.";
             setMessages(prev => [...prev, { role: 'ai', content: aiContent }]);
-
-            // Google Sheet Sync Logic
-            if (googleSheetService.getConfig()?.enabled) {
-                setIsSyncing(true);
-                await googleSheetService.syncTrade({
-                    query: userQuery,
-                    analysis: aiContent,
-                    nifty_price: nifty?.price,
-                    vega_diff: nifty?.difference,
-                    trend: nifty?.trend
-                });
-                setIsSyncing(false);
-            }
-
         } catch (err: any) {
             console.error("Analyst Error:", err);
             setMessages(prev => [...prev, { role: 'ai', content: "⚠️ **Neural Sync Error.** API Key check karein.", isError: true }]);
@@ -129,11 +113,6 @@ export const FinancialAnalyst: React.FC = () => {
                     </div>
                 </div>
                 <div className="hidden md:flex items-center gap-4">
-                    {googleSheetService.getConfig()?.enabled && (
-                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[9px] font-black uppercase transition-all ${isSyncing ? 'bg-emerald-500 text-white animate-pulse' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700'}`}>
-                            <FileSpreadsheet size={12} /> {isSyncing ? 'Syncing Sheet...' : 'Sheet Linked'}
-                        </div>
-                    )}
                     <RefreshCw size={18} className={`text-slate-400 ${isLoading ? 'animate-spin text-indigo-500' : ''}`} />
                 </div>
             </div>

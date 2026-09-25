@@ -4,126 +4,177 @@ interface SMCLogoProps {
   size?: number;
   className?: string;
   showText?: boolean;
-  variant?: 'full' | 'icon' | 'badge';
+  variant?: 'full' | 'icon' | 'compact' | 'header';
 }
 
 export const SMCLogo: React.FC<SMCLogoProps> = ({
-  size = 36,
+  size = 44,
   className = '',
   showText = false,
   variant = 'icon'
 }) => {
   return (
-    <div className={`inline-flex items-center gap-3 select-none ${className}`}>
-      {/* Unique Quantum Institutional Hex-Sigma SVG Emblem */}
+    <div className={`inline-flex items-center gap-3.5 select-none ${className}`}>
+      {/* Unique Quantum Apex Falcon / Multi-Layered Diamond Emblem */}
       <div 
-        className="relative flex items-center justify-center shrink-0 group"
+        className="relative flex items-center justify-center shrink-0 group cursor-pointer"
         style={{ width: size, height: size }}
       >
-        {/* Ambient Neon Glow Aura */}
+        {/* Multilayered Ambient Radial Pulse Aura */}
         <div 
-          className="absolute inset-0 bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-400 rounded-2xl blur-md opacity-40 group-hover:opacity-75 transition-opacity duration-500 -z-10"
+          className="absolute -inset-1.5 bg-gradient-to-tr from-cyan-500 via-indigo-600 to-emerald-400 rounded-2xl blur-xl opacity-40 group-hover:opacity-85 transition-all duration-700 -z-10 animate-pulse-slow" 
+        />
+        <div 
+          className="absolute inset-0 bg-slate-950/90 rounded-2xl border border-indigo-500/40 shadow-inner -z-0"
         />
 
+        {/* Master SVG Emblem */}
         <svg
-          viewBox="0 0 100 100"
+          viewBox="0 0 140 140"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="w-full h-full drop-shadow-[0_2px_12px_rgba(99,102,241,0.5)] transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full p-1.5 transition-transform duration-500 group-hover:scale-105 drop-shadow-[0_4px_20px_rgba(99,102,241,0.6)] z-10"
         >
           <defs>
-            {/* Outer Hex Gradient */}
-            <linearGradient id="smcShieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#0ea5e9" />
-              <stop offset="50%" stopColor="#6366f1" />
-              <stop offset="100%" stopColor="#a855f7" />
+            {/* Primary Crystalline Hologram Gradient */}
+            <linearGradient id="smcApexHolo" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="35%" stopColor="#6366f1" />
+              <stop offset="70%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#06b6d4" />
             </linearGradient>
 
-            {/* Inner Neon Core Gradient */}
-            <linearGradient id="smcCoreGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            {/* Bullish Institutional Emerald Laser Gradient */}
+            <linearGradient id="smcBullLaser" x1="0%" y1="100%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#10b981" />
-              <stop offset="60%" stopColor="#06b6d4" />
+              <stop offset="50%" stopColor="#06b6d4" />
               <stop offset="100%" stopColor="#38bdf8" />
             </linearGradient>
 
-            {/* Gold Institutional Highlight */}
-            <linearGradient id="goldAccentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#fbbf24" />
-              <stop offset="100%" stopColor="#f59e0b" />
+            {/* Radiant Golden Vector Gradient */}
+            <linearGradient id="smcGoldApex" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="40%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#d97706" />
             </linearGradient>
 
-            {/* Radial Core Glow */}
-            <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#818cf8" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+            {/* High-Tech Dark Carbon Facet Gradient */}
+            <linearGradient id="smcDarkFacet" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#1e1b4b" />
+              <stop offset="100%" stopColor="#090d16" />
+            </linearGradient>
+
+            {/* Core Fusion Singularity */}
+            <radialGradient id="smcFusionCore" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
+              <stop offset="35%" stopColor="#38bdf8" stopOpacity="0.85" />
+              <stop offset="70%" stopColor="#6366f1" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#020617" stopOpacity="0" />
             </radialGradient>
+
+            {/* Glow Filter */}
+            <filter id="apexGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3.5" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
 
-          {/* Hexagonal Shield Boundary (Precision Institutional Matrix) */}
+          {/* Layer 1: Outer Precision Octagonal Shield Perimeter */}
           <polygon
-            points="50,4 92,26 92,74 50,96 8,74 8,26"
-            fill="#050816"
-            stroke="url(#smcShieldGrad)"
+            points="70,8 116,26 132,70 116,114 70,132 24,114 8,70 24,26"
+            fill="url(#smcDarkFacet)"
+            stroke="url(#smcApexHolo)"
             strokeWidth="3.5"
             strokeLinejoin="round"
           />
 
-          {/* Sub-grid Crosshair Reticle Lines (Quant Sniper Optics) */}
-          <line x1="50" y1="12" x2="50" y2="28" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.6" />
-          <line x1="50" y1="72" x2="50" y2="88" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.6" />
-          <line x1="16" y1="50" x2="30" y2="50" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.6" />
-          <line x1="70" y1="50" x2="84" y2="50" stroke="#818cf8" strokeWidth="1.5" strokeLinecap="round" strokeOpacity="0.6" />
+          {/* Layer 2: Concentric Radar Crosshair Calibrations */}
+          <circle cx="70" cy="70" r="54" stroke="#334155" strokeWidth="1" strokeDasharray="3 4" opacity="0.6" />
+          <circle cx="70" cy="70" r="38" stroke="#475569" strokeWidth="1" strokeDasharray="2 3" opacity="0.5" />
+          
+          {/* Sniper Alignment Ticks */}
+          <line x1="70" y1="12" x2="70" y2="24" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="70" y1="116" x2="70" y2="128" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="12" y1="70" x2="24" y2="70" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
+          <line x1="116" y1="70" x2="128" y2="70" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" />
 
-          {/* Inner Hex Ring with tick marks */}
+          {/* Layer 3: Dynamic 3D Interlocking Falcon Wings / SMC Liquidity Chevrons */}
+          {/* Left Wing Facet (Buy-Side Liquidity Pool) */}
           <polygon
-            points="50,16 80,32 80,68 50,84 20,68 20,32"
-            fill="none"
-            stroke="#1e293b"
+            points="28,48 70,24 64,52 38,64"
+            fill="#3b82f6"
+            fillOpacity="0.3"
+            stroke="#60a5fa"
             strokeWidth="1.5"
-            strokeDasharray="4 4"
+            strokeLinejoin="round"
           />
-
-          {/* Center Glow Ambient Field */}
-          <circle cx="50" cy="50" r="22" fill="url(#centerGlow)" />
-
-          {/* Stylized SMC 'Sigma + Lightning Institutional Orderflow' Glyph */}
-          {/* Top Shelf of Sigma */}
-          <path
-            d="M32,32 L68,32 L52,48 L68,68 L32,68"
-            stroke="url(#smcCoreGrad)"
-            strokeWidth="5"
-            strokeLinecap="round"
+          {/* Right Wing Facet (Sell-Side Liquidity Pool) */}
+          <polygon
+            points="112,48 70,24 76,52 102,64"
+            fill="#8b5cf6"
+            fillOpacity="0.3"
+            stroke="#a78bfa"
+            strokeWidth="1.5"
             strokeLinejoin="round"
           />
 
-          {/* Institutional Liquidity Sweep Arrow Accent (Bullish Upthrust Delta) */}
+          {/* Layer 4: Signature "SMC Apex Bolt" (Institutional Orderflow Breakout) */}
           <path
-            d="M62,24 L74,24 L74,36"
-            stroke="url(#goldAccentGrad)"
-            strokeWidth="2.5"
+            d="M42,42 L98,42 L68,66 L94,66 L44,104 L58,76 L38,76 Z"
+            fill="url(#smcBullLaser)"
+            stroke="#ffffff"
+            strokeWidth="2"
+            strokeLinejoin="round"
+            filter="url(#apexGlow)"
+          />
+
+          {/* Layer 5: Golden Bullish Divergence Arrow Head Piercing Upward */}
+          <path
+            d="M84,32 L112,32 L112,60"
+            stroke="url(#smcGoldApex)"
+            strokeWidth="4"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          <line
+            x1="112"
+            y1="32"
+            x2="78"
+            y2="66"
+            stroke="url(#smcGoldApex)"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
 
-          {/* Central Quantum Singularity Point (Precision Market Core) */}
-          <circle cx="50" cy="50" r="4" fill="#ffffff" />
-          <circle cx="50" cy="50" r="2" fill="#06b6d4" />
+          {/* Layer 6: Core Quantum Singularity Center */}
+          <circle cx="70" cy="70" r="16" fill="url(#smcFusionCore)" />
+          <circle cx="70" cy="70" r="3.5" fill="#ffffff" />
+          <circle cx="70" cy="70" r="1.5" fill="#38bdf8" />
+
+          {/* Satellite Data Quantum Nodes */}
+          <circle cx="116" cy="26" r="3" fill="#38bdf8" className="animate-pulse" />
+          <circle cx="132" cy="70" r="3" fill="#a855f7" />
+          <circle cx="116" cy="114" r="3" fill="#10b981" />
+          <circle cx="24" cy="114" r="3" fill="#f59e0b" />
+          <circle cx="8" cy="70" r="3" fill="#06b6d4" />
+          <circle cx="24" cy="26" r="3" fill="#ec4899" className="animate-pulse" />
         </svg>
       </div>
 
-      {/* Optional Brand Typography */}
-      {(showText || variant === 'full') && (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5">
-            <span className="font-black text-slate-900 dark:text-white tracking-tighter text-base sm:text-lg leading-none">
-              SMC <span className="bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">QUANT</span>
+      {/* Typography & Brand Title */}
+      {(showText || variant === 'full' || variant === 'header') && (
+        <div className="flex flex-col text-left">
+          <div className="flex items-center gap-2">
+            <span className="font-black text-slate-900 dark:text-white tracking-tighter text-lg leading-tight flex items-center">
+              SMC <span className="ml-1 bg-gradient-to-r from-cyan-400 via-indigo-500 to-emerald-400 bg-clip-text text-transparent font-black">APEX</span>
             </span>
-            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-              v6.0
+            <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest bg-indigo-500/15 text-indigo-500 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LIVE PRO
             </span>
           </div>
-          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase mt-0.5">
-            Institutional Terminal
+          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 tracking-[0.24em] uppercase mt-0.5">
+            Smart Money Quant Terminal
           </span>
         </div>
       )}

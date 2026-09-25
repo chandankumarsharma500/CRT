@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { Activity, Target, Server, TrendingUp, TrendingDown, Wifi, WifiOff, Zap, Shield, Maximize2, BarChart3, ChevronRight, Layers, Sparkles, Radar, AlertCircle, ShieldCheck, Copy, Check, Cpu, Loader2, MessageSquare, Database } from 'lucide-react';
+import { Activity, Target, Server, TrendingUp, TrendingDown, Wifi, WifiOff, Zap, Shield, Maximize2, BarChart3, ChevronRight, Layers, Sparkles, Radar, AlertCircle, ShieldCheck, Copy, Check, Cpu, Loader2, MessageSquare, Database, Key, ExternalLink } from 'lucide-react';
 import { MarketDataPoint, IndexMarketData, SMCZone, TradingSignal } from '../types';
 import { VegaStrategy } from '../services/vegaLogic';
 import { SmartMoneyLogic } from '../services/smartMoneyLogic';
-import { dhanService } from '../services/dhanService';
+import { getBrokerService } from '../services/brokerFactory';
+import { brokerRegistry } from '../services/brokerRegistry';
 import { AILogic, AIAnalysisResult } from '../services/aiLogic';
 
 interface DashboardProps {
@@ -14,7 +15,7 @@ interface DashboardProps {
   onNavigateToSmartMoney: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ darkMode, onNavigateToSmartMoney }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ darkMode, onNavigateToLogin, onNavigateToSmartMoney }) => {
   const [data, setData] = useState<MarketDataPoint[]>([]);
   const [indices, setIndices] = useState<IndexMarketData[]>([]);
   const [selectedIndexId, setSelectedIndexId] = useState<string>('nifty');
@@ -23,6 +24,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ darkMode, onNavigateToSmar
   const [scalpSignal, setScalpSignal] = useState<AIAnalysisResult | null>(null);
   const [isAuditingScalp, setIsAuditingScalp] = useState(false);
   const intervalRef = useRef<any>(null);
+
+  const activeBrokerId = brokerRegistry.getActiveBrokerId();
+  const activeBrokerMeta = brokerRegistry.getBrokerMetadata(activeBrokerId);
+  const isBrokerConfigured = brokerRegistry.isConfigured(activeBrokerId);
 
   const selectedIndex = useMemo(() => 
     indices.find(i => i.definition.id === selectedIndexId) || indices[0],
@@ -47,7 +52,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ darkMode, onNavigateToSmar
 
   useEffect(() => {
     const fetchTick = async () => {
-      const allData = await dhanService.fetchIndicesMarketData();
+      const brokerService = getBrokerService();
+      const allData = await brokerService.fetchIndicesMarketData();
       setIndices(allData);
       
       const selected = allData.find(i => i.definition.id === selectedIndexId);
@@ -81,8 +87,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ darkMode, onNavigateToSmar
   }, [selectedIndexId, smcZones]);
 
   return (
-    <div className="space-y-8 animate-in fade-in zoom-in-95 duration-700 pb-20">
-      <div className="bg-indigo-600 p-2 text-center text-[10px] font-black text-white uppercase tracking-[0.4em] flex items-center justify-center gap-4 rounded-b-2xl shadow-lg">
+    <div className="space-y-6 animate-in fade-in zoom-in-95 duration-700 pb-20">
+      
+      {/* Top Active Broker & Live Data Feed Indicator Banner */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-4 md:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className={`w-12 h-12 rounded-2xl ${activeBrokerMeta.logoBg} flex items-center justify-center font-black text-base shadow-md ${
+            activeBrokerMeta.id === 'BINANCE' || activeBrokerMeta.id === 'ALPACA' ? 'text-black' : 'text-white'
+          }`}>
+            {activeBrokerMeta.logoLetter}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                {activeBrokerMeta.name}
+              </span>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                isBrokerConfigured 
+                  ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' 
+                  : 'bg-amber-500/15 text-amber-500 border-amber-500/30'
+              }`}>
+                {isBrokerConfigured ? '🟢 Live API Feed Active' : '⚡ Simulated Live Feed'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5 font-medium">
+              {isBrokerConfigured 
+                ? 'Direct Broker API & Secret Key authenticated. Streaming real-time ticks & Greeks.' 
+                : 'Broker API & Secret Key enter karke direct live broker data feed connect karein.'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 self-start sm:self-center">
+          <button
+            onClick={onNavigateToLogin}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+          >
+            <Key size={14} />
+            {isBrokerConfigured ? 'Manage Broker API' : 'Connect Broker API & Secret'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-indigo-600 p-2 text-center text-[10px] font-black text-white uppercase tracking-[0.4em] flex items-center justify-center gap-4 rounded-2xl shadow-lg">
          <Sparkles size={12} /> Neural Scalper Active - 5m Timeframe <Sparkles size={12} />
       </div>
 
