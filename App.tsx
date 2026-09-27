@@ -190,10 +190,10 @@ export const App: React.FC = () => {
         </div>
 
         {/* Live Yahoo Finance Market Strip (Center) */}
-        <div className="hidden xl:flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+        <div className="hidden md:flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[10px] font-mono shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-bold text-slate-500 dark:text-slate-400">YAHOO LIVE</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="font-bold text-slate-500 dark:text-slate-400">YAHOO LIVE 1s</span>
           </div>
 
           {primaryTickers.map((key) => {
@@ -203,13 +203,15 @@ export const App: React.FC = () => {
             return (
               <div 
                 key={key} 
-                className="flex items-center gap-2 px-3 py-1 rounded bg-white/70 dark:bg-[#070c1d]/90 border border-black/5 dark:border-white/5 text-[11px] font-mono tracking-tight shrink-0 shadow-sm"
+                className={`flex items-center gap-2 px-3 py-1 rounded bg-white/70 dark:bg-[#070c1d]/90 border border-black/5 dark:border-white/5 text-[11px] font-mono tracking-tight shrink-0 shadow-sm transition-all duration-300 ${
+                  q.tickDirection === 'UP' ? 'border-emerald-500/30' : q.tickDirection === 'DOWN' ? 'border-rose-500/30' : ''
+                }`}
               >
                 <span className="font-extrabold text-slate-700 dark:text-slate-300">{q.name}</span>
-                <span className="font-black text-slate-900 dark:text-white">
-                  {q.price.toLocaleString('en-IN', { maximumFractionDigits: 1 })}
+                <span className={`font-black ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  ₹{q.price.toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
                 </span>
-                <span className={`text-[10px] font-bold ${isUp ? 'text-emerald-500' : 'text-rose-500'}`}>
+                <span className={`text-[10px] font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {isUp ? '+' : ''}{q.changePercent.toFixed(2)}%
                 </span>
               </div>

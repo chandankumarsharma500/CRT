@@ -106,7 +106,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     };
 
     fetchTick();
-    intervalRef.current = setInterval(fetchTick, 2500);
+    intervalRef.current = setInterval(fetchTick, 1000);
     return () => clearInterval(intervalRef.current);
   }, [selectedIndexId, smcZones]);
 

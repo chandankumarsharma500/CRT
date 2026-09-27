@@ -11,6 +11,7 @@ import {
   BrokerId 
 } from '../types';
 import { ALL_INDICES } from './dhanService';
+import { yahooFinanceService } from './yahooFinanceService';
 
 // Zerodha Kite Instrument tokens for Indian Indices
 export const ZERODHA_TOKEN_MAP: Record<string, { token: string; tradingsymbol: string }> = {
@@ -563,9 +564,11 @@ class ZerodhaApiService implements UnifiedBrokerService {
       const quote = this.closingPrices[index.id];
       const baseClose = BASELINE_CLOSES[index.id] || 24800;
       const lastClose = quote?.lastClose || baseClose;
-      const price = quote?.lastPrice || lastClose;
-      const change = quote?.change ?? (price - lastClose);
-      const percentChange = quote?.percentChange ?? (lastClose > 0 ? (change / lastClose) * 100 : 0);
+      
+      const yQuote = yahooFinanceService.getQuote(index.id);
+      const price = (!isConfig && yQuote) ? yQuote.price : (quote?.lastPrice || lastClose);
+      const change = (!isConfig && yQuote) ? yQuote.change : (quote?.change ?? (price - lastClose));
+      const percentChange = (!isConfig && yQuote) ? yQuote.changePercent : (quote?.percentChange ?? (lastClose > 0 ? (change / lastClose) * 100 : 0));
 
       const diffFromClose = price - lastClose;
       const callVega = Math.max(-200, Math.min(1000, 355 + diffFromClose * 3.55));

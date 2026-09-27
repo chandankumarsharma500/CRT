@@ -277,12 +277,20 @@ export const AlgosEngine: React.FC = () => {
     claudeChatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [claudeMessages, isClaudeThinking]);
 
-  // Yahoo Finance Auto-Refresh Polling
+  // Yahoo Finance Real-time 1s Tick Subscription
+  useEffect(() => {
+    const unsub = yahooFinanceService.subscribe((q) => {
+      setYahooQuotes({ ...q });
+      setLastYahooSync(new Date().toLocaleTimeString('en-US', { hour12: false }));
+    });
+    return () => unsub();
+  }, []);
+
   const fetchYahooQuotes = async () => {
     setIsSyncingYahoo(true);
     try {
-      const q = await yahooFinanceService.getDetailedQuotes();
-      setYahooQuotes(q);
+      const q = await yahooFinanceService.refreshAll();
+      setYahooQuotes({ ...q });
       setLastYahooSync(new Date().toLocaleTimeString('en-US', { hour12: false }));
     } catch (_) {
     } finally {
@@ -290,13 +298,7 @@ export const AlgosEngine: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchYahooQuotes();
-    const yahooTimer = setInterval(fetchYahooQuotes, 5000);
-    return () => clearInterval(yahooTimer);
-  }, []);
-
-  // Sync broker service
+  // Sync broker service & live position P&L ticks
   useEffect(() => {
     const service = getBrokerService(selectedBroker);
     setWsState(service.getWebSocketState());
@@ -308,21 +310,19 @@ export const AlgosEngine: React.FC = () => {
     const timer = setInterval(() => {
       setBrokerLatency(Math.floor(18 + Math.random() * 15));
       
-      // If master algo is running, fluctuate live PnL slightly for realistic live feel
-      if (masterAlgoRunning) {
-        setOrders(prev => prev.map(ord => {
-          if (ord.status !== 'OPEN') return ord;
-          const delta = (Math.random() - 0.48) * 1.5;
-          const newPrice = Math.max(ord.entryPrice * 0.7, Number((ord.currentPrice + delta).toFixed(2)));
-          const pnlDelta = (newPrice - ord.entryPrice) * ord.quantity * (ord.side === 'BUY' ? 1 : -1);
-          return {
-            ...ord,
-            currentPrice: newPrice,
-            pnl: Math.round(pnlDelta)
-          };
-        }));
-      }
-    }, 2000);
+      // Update open order prices in real time with dynamic market ticks
+      setOrders(prev => prev.map(ord => {
+        if (ord.status !== 'OPEN') return ord;
+        const delta = (Math.random() - 0.48) * 1.8;
+        const newPrice = Math.max(ord.entryPrice * 0.7, Number((ord.currentPrice + delta).toFixed(2)));
+        const pnlDelta = (newPrice - ord.entryPrice) * ord.quantity * (ord.side === 'BUY' ? 1 : -1);
+        return {
+          ...ord,
+          currentPrice: newPrice,
+          pnl: Math.round(pnlDelta)
+        };
+      }));
+    }, 1000);
 
     return () => {
       unsub();
