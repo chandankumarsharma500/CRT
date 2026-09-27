@@ -4,8 +4,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SMC APEX | Smart Money Quant Terminal</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='h' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%2338bdf8'/><stop offset='50%25' stop-color='%236366f1'/><stop offset='100%25' stop-color='%2310b981'/></linearGradient></defs><polygon points='50,6 84,18 94,50 84,82 50,94 16,82 6,50 16,18' fill='%23050816' stroke='url(%23h)' stroke-width='4'/><path d='M30,30 L70,30 L48,48 L68,48 L32,76 L42,54 L26,54 Z' fill='%2306b6d4'/><polyline points='60,22 80,22 80,42' fill='none' stroke='%23f59e0b' stroke-width='3.5'/><line x1='80' y1='22' x2='56' y2='46' stroke='%23f59e0b' stroke-width='3.5'/><circle cx='50' cy='50' r='3.5' fill='%23ffffff'/></svg>" />
+    <title>APEX QUANTUM V5 | Institutional CRT Trading Terminal</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='h' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%2300f59b'/><stop offset='50%25' stop-color='%2300e5ff'/><stop offset='100%25' stop-color='%238b5cf6'/></linearGradient></defs><polygon points='50,6 88,18 96,50 88,82 50,94 12,82 4,50 12,18' fill='%23030712' stroke='url(%23h)' stroke-width='4'/><path d='M30,32 L70,32 L48,50 L68,50 L32,78 L42,56 L26,56 Z' fill='%2300f59b'/><polyline points='60,20 82,20 82,42' fill='none' stroke='%2300e5ff' stroke-width='3.5'/><line x1='82' y1='20' x2='56' y2='46' stroke='%2300e5ff' stroke-width='3.5'/><circle cx='50' cy='50' r='3.5' fill='%23ffffff'/></svg>" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -13,112 +13,117 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Inter', 'sans-serif'],
+              sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
               mono: ['JetBrains Mono', 'monospace'],
+              display: ['Space Grotesk', 'sans-serif'],
             },
             colors: {
-              slate: {
-                950: '#020617',
-                900: '#0a0f1e',
-                800: '#151c30',
-                700: '#1e293b',
-              },
-              indigo: {
-                400: '#818cf8',
-                500: '#6366f1',
-                600: '#4f46e5',
-              },
-              neon: {
-                green: '#10b981',
-                red: '#ef4444',
-                blue: '#3b82f6',
-                purple: '#a855f7'
+              apex: {
+                950: '#030712',
+                900: '#060a17',
+                850: '#0b1124',
+                800: '#111a33',
+                700: '#1b2647',
+                600: '#25355e',
+                border: 'rgba(255, 255, 255, 0.08)',
+                cyan: '#00e5ff',
+                emerald: '#00f59b',
+                violet: '#8b5cf6',
+                amber: '#f59e0b',
+                rose: '#ff3366',
               }
             }
           }
         }
       }
     </script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
       :root {
-        --bg-main: #f8fafc;
+        --bg-main: #f1f5f9;
+        --grid-line: rgba(0, 0, 0, 0.04);
       }
       .dark {
-        --bg-main: #020617;
+        --bg-main: #040711;
+        --grid-line: rgba(255, 255, 255, 0.035);
       }
       body { 
-        font-family: 'Inter', sans-serif; 
+        font-family: 'Plus Jakarta Sans', sans-serif; 
         background-color: var(--bg-main);
-        color: #1e293b;
+        color: #0f172a;
         -webkit-font-smoothing: antialiased;
         overflow-x: hidden;
-        transition: background-color 0.5s ease;
       }
       .dark body {
         color: #e2e8f0;
       }
 
-      .terminal-glass {
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.05);
-      }
-      .dark .terminal-glass {
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+      /* Cybernetic HUD Grid Background */
+      .cyber-grid {
+        background-image: 
+          linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+          linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+        background-size: 32px 32px;
       }
 
-      .neon-shadow-green { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
-      .neon-shadow-red { box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
-      .neon-shadow-indigo { box-shadow: 0 0 15px rgba(79, 70, 229, 0.3); }
+      /* Institutional Terminal Glass with Hairline Border */
+      .hud-panel {
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+      }
+      .dark .hud-panel {
+        background: rgba(8, 13, 26, 0.78);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+      }
 
-      .grain-texture {
+      .hud-panel-highlight {
         position: relative;
       }
-      .grain-texture::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background-image: url("https://grainy-gradients.vercel.app/noise.svg");
-        opacity: 0.02;
-        pointer-events: none;
-        z-index: 10;
-      }
-      .dark .grain-texture::before {
-        opacity: 0.03;
-      }
-
-      ::-webkit-scrollbar { width: 4px; height: 4px; }
-      ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      .dark ::-webkit-scrollbar-thumb { background: #1e293b; }
-      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-      .animate-pulse-slow {
-        animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-      }
-
-      @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: .5; }
-      }
-
-      .nav-active-glow {
-        position: relative;
-      }
-      .nav-active-glow::after {
+      .hud-panel-highlight::before {
         content: '';
         position: absolute;
-        left: -10px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 4px;
-        height: 20px;
-        background: #6366f1;
-        border-radius: 0 4px 4px 0;
-        box-shadow: 0 0 10px #6366f1;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(0, 229, 255, 0.3), rgba(139, 92, 246, 0.2), transparent 70%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+
+      /* Glowing Laser Edge Tickers */
+      .glow-cyan {
+        box-shadow: 0 0 20px -3px rgba(0, 229, 255, 0.35);
+      }
+      .glow-emerald {
+        box-shadow: 0 0 20px -3px rgba(0, 245, 155, 0.35);
+      }
+      .glow-rose {
+        box-shadow: 0 0 20px -3px rgba(255, 51, 102, 0.35);
+      }
+
+      /* Custom High-Frequency Precision Scrollbar */
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+      .dark ::-webkit-scrollbar-thumb { background: #1b2647; }
+      ::-webkit-scrollbar-thumb:hover { background: #00e5ff; }
+
+      /* Ticker Tape continuous flow effect */
+      @keyframes ticker-fade {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+      }
+      .ticker-pulse {
+        animation: ticker-fade 2s infinite ease-in-out;
       }
     </style>
   <script type="importmap">

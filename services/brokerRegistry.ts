@@ -1,5 +1,7 @@
 import { BrokerId, BrokerMetadata, BrokerProfile, BrokerHolding } from '../types';
 
+export const OFFICIAL_REDIRECT_URI = 'https://crt-9nue.onrender.com';
+
 export const ALL_BROKERS: BrokerMetadata[] = [
   // --- Indian Discount Brokers ---
   {
@@ -13,10 +15,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://kite.trade',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ', 'MCX'],
     fields: [
-      { key: 'clientId', label: 'Zerodha User ID', placeholder: 'e.g. AB1234', type: 'text', required: true, help: 'Your 6-character Kite User ID' },
-      { key: 'apiKey', label: 'Kite API Key', placeholder: 'e.g. 29xkd028472910...', type: 'password', required: true, help: 'Generated from Kite Developer Console' },
-      { key: 'apiSecret', label: 'Kite API Secret', placeholder: '••••••••••••••••••••••••', type: 'password', required: true, help: 'Keep confidential' },
-      { key: 'accessToken', label: 'Enctoken / Access Token / TOTP', placeholder: 'Access token from morning auth', type: 'password', required: true, help: 'Daily Kite access token or TOTP key' }
+      { key: 'apiKey', label: 'Kite API Key', placeholder: 'e.g. 29xkd028472910...', type: 'text', required: true, help: 'Generated from Kite Developer Console' },
+      { key: 'apiSecret', label: 'Kite API Secret Key', placeholder: '••••••••••••••••••••••••', type: 'password', required: true, help: 'From Kite Developer App Secret' }
     ]
   },
   {
@@ -30,9 +30,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://dhan.co',
     supportedSegments: ['NSE_EQ', 'NSE_FNO', 'BSE_EQ', 'BSE_FNO', 'MCX'],
     fields: [
-      { key: 'clientId', label: 'Dhan Client ID', placeholder: 'e.g. 1000123456', type: 'text', required: true, help: 'Found in Dhan profile header' },
-      { key: 'accessToken', label: 'Dhan Access Token (JWT)', placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', type: 'password', required: true, help: 'Generated from Dhan web > Profile > Access Tokens' },
-      { key: 'environment', label: 'Environment', placeholder: 'PRODUCTION', type: 'text', defaultValue: 'PRODUCTION', help: 'PRODUCTION or SANDBOX' }
+      { key: 'apiKey', label: 'Dhan Client ID / Partner API Key', placeholder: 'e.g. 1000123456', type: 'text', required: true, help: 'Found in Dhan profile header' },
+      { key: 'apiSecret', label: 'Dhan Secret Key / Access Token', placeholder: '••••••••••••••••••••••••', type: 'password', required: true, help: 'From Dhan web > Access Tokens or Secret Key' }
     ]
   },
   {
@@ -46,10 +45,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://smartapi.angelone.in',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ', 'MCX'],
     fields: [
-      { key: 'clientId', label: 'Client Code', placeholder: 'e.g. A123456', type: 'text', required: true, help: 'Angel One trading account code' },
-      { key: 'pin', label: 'Trading PIN / MPIN', placeholder: 'e.g. 1234', type: 'password', required: true, help: 'Your 4-digit Angel One MPIN' },
-      { key: 'apiKey', label: 'SmartAPI Key', placeholder: 'e.g. 3B8xF291...', type: 'password', required: true, help: 'Created under SmartAPI dashboard apps' },
-      { key: 'totpSecret', label: 'TOTP Secret Key / JWT Token', placeholder: 'Authenticator TOTP seed key', type: 'password', required: true, help: 'Used for automatic 2FA session renewal' }
+      { key: 'apiKey', label: 'SmartAPI Key', placeholder: 'e.g. 3B8xF291...', type: 'text', required: true, help: 'Created under SmartAPI dashboard apps' },
+      { key: 'apiSecret', label: 'SmartAPI Secret Key / MPIN', placeholder: '••••••••••••••••', type: 'password', required: true, help: 'SmartAPI secret or MPIN / TOTP secret' }
     ]
   },
   {
@@ -64,9 +61,7 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     supportedSegments: ['NSE_EQ', 'NSE_INDEX', 'NFO', 'MCX'],
     fields: [
       { key: 'apiKey', label: 'Upstox API Key', placeholder: 'e.g. 8492048b-3028-4091...', type: 'text', required: true, help: 'From Upstox Developer Console App' },
-      { key: 'apiSecret', label: 'API Secret', placeholder: '••••••••••••••••', type: 'password', required: true, help: 'Used for OAuth token generation' },
-      { key: 'redirectUri', label: 'Redirect URI (CORS / OAuth)', placeholder: typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:3000', type: 'text', defaultValue: typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:3000', help: 'Must match Upstox App Redirect URL exactly' },
-      { key: 'accessToken', label: 'OAuth Access Token', placeholder: 'OAuth 2.0 Bearer access token', type: 'password', required: true, help: 'Direct token or login via OAuth dialog' }
+      { key: 'apiSecret', label: 'Upstox API Secret Key', placeholder: '••••••••••••••••', type: 'password', required: true, help: 'From Upstox App Secret' }
     ]
   },
   {
@@ -80,9 +75,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://groww.in',
     supportedSegments: ['NSE_EQ', 'BSE_EQ', 'NFO'],
     fields: [
-      { key: 'clientId', label: 'Groww User / Mobile ID', placeholder: 'e.g. 9876543210', type: 'text', required: true },
-      { key: 'apiKey', label: 'Partner API Key', placeholder: 'e.g. GRW-API-8274...', type: 'password', required: true },
-      { key: 'accessToken', label: 'Bearer Auth Token', placeholder: 'Session auth token or TOTP', type: 'password', required: true }
+      { key: 'apiKey', label: 'Groww API Key / Client ID', placeholder: 'e.g. GRW-API-8274...', type: 'text', required: true },
+      { key: 'apiSecret', label: 'Groww Secret Key / Token', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -96,9 +90,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://fyers.in/api',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ', 'MCX', 'CURRENCY'],
     fields: [
-      { key: 'appId', label: 'App ID (Client ID - App)', placeholder: 'e.g. XC12345-100', type: 'text', required: true, help: 'From Fyers API Dashboard' },
-      { key: 'secretKey', label: 'App Secret Key', placeholder: '••••••••••••••••••••••••', type: 'password', required: true },
-      { key: 'accessToken', label: 'Access Token', placeholder: 'Fyers API v3 generated token', type: 'password', required: true }
+      { key: 'apiKey', label: 'Fyers App ID / API Key', placeholder: 'e.g. XC12345-100', type: 'text', required: true, help: 'From Fyers API Dashboard' },
+      { key: 'apiSecret', label: 'Fyers Secret Key', placeholder: '••••••••••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -112,10 +105,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://shoonya.com',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ', 'MCX', 'NCDEX'],
     fields: [
-      { key: 'userId', label: 'Shoonya User ID', placeholder: 'e.g. FA12345', type: 'text', required: true },
-      { key: 'password', label: 'Account Password', placeholder: '••••••••', type: 'password', required: true },
-      { key: 'vendorKey', label: 'Vendor / API Key', placeholder: 'e.g. 9f848201...', type: 'password', required: true },
-      { key: 'twoFa', label: 'TOTP / 2FA Key', placeholder: '6-digit TOTP secret', type: 'password', required: true }
+      { key: 'apiKey', label: 'Shoonya Vendor / API Key', placeholder: 'e.g. 9f848201...', type: 'text', required: true },
+      { key: 'apiSecret', label: 'Shoonya Secret / Password', placeholder: '••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -129,9 +120,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://ant.aliceblueonline.com',
     supportedSegments: ['NSE_EQ', 'NFO', 'MCX'],
     fields: [
-      { key: 'userId', label: 'Alice Blue User ID', placeholder: 'e.g. 543210', type: 'text', required: true },
-      { key: 'apiKey', label: 'ANT Plus API Key', placeholder: '••••••••••••••••', type: 'password', required: true },
-      { key: 'encryptionKey', label: 'Encryption Key / Session Token', placeholder: 'Auto generated session', type: 'password' }
+      { key: 'apiKey', label: 'ANT Plus API Key', placeholder: '••••••••••••••••', type: 'text', required: true },
+      { key: 'apiSecret', label: 'ANT Plus Secret / Encryption Key', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -145,10 +135,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://www.5paisa.com/developer-apis',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE', 'MCX'],
     fields: [
-      { key: 'clientCode', label: 'Client Code', placeholder: 'e.g. 50012345', type: 'text', required: true },
-      { key: 'userKey', label: 'User Key', placeholder: 'From 5Paisa Developer Portal', type: 'password', required: true },
-      { key: 'encryptionKey', label: 'Encryption Key', placeholder: 'Secret encryption key', type: 'password', required: true },
-      { key: 'password', label: 'PIN / Password', placeholder: '••••••••', type: 'password', required: true }
+      { key: 'apiKey', label: '5Paisa User / API Key', placeholder: 'From 5Paisa Developer Portal', type: 'text', required: true },
+      { key: 'apiSecret', label: '5Paisa Encryption / Secret Key', placeholder: 'Secret encryption key', type: 'password', required: true }
     ]
   },
   {
@@ -162,9 +150,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://developer.paytmmoney.com',
     supportedSegments: ['NSE_EQ', 'NFO'],
     fields: [
-      { key: 'apiKey', label: 'API Key', placeholder: 'Paytm Money API Key', type: 'text', required: true },
-      { key: 'apiSecret', label: 'API Secret', placeholder: '••••••••••••••••', type: 'password', required: true },
-      { key: 'accessToken', label: 'Request Token / JWT', placeholder: 'Session accessToken', type: 'password', required: true }
+      { key: 'apiKey', label: 'Paytm Money API Key', placeholder: 'Paytm Money API Key', type: 'text', required: true },
+      { key: 'apiSecret', label: 'Paytm Money Secret Key', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -178,9 +165,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://flattrade.in',
     supportedSegments: ['NSE_EQ', 'NFO', 'MCX'],
     fields: [
-      { key: 'clientId', label: 'Client ID', placeholder: 'e.g. FT1234', type: 'text', required: true },
-      { key: 'apiKey', label: 'API Key', placeholder: 'Flat Trade API Key', type: 'password', required: true },
-      { key: 'accessToken', label: 'Secret Token', placeholder: '••••••••••••', type: 'password', required: true }
+      { key: 'apiKey', label: 'Flat Trade API Key', placeholder: 'Flat Trade API Key', type: 'text', required: true },
+      { key: 'apiSecret', label: 'Flat Trade Secret Key', placeholder: '••••••••••••', type: 'password', required: true }
     ]
   },
 
@@ -196,10 +182,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://neo.kotaksecurities.com',
     supportedSegments: ['NSE_EQ', 'NSE_FNO', 'BSE_EQ', 'BSE_FNO'],
     fields: [
-      { key: 'consumerKey', label: 'Consumer Key', placeholder: 'Kotak API Consumer Key', type: 'text', required: true },
-      { key: 'consumerSecret', label: 'Consumer Secret', placeholder: '••••••••••••••••', type: 'password', required: true },
-      { key: 'mobile', label: 'Registered Mobile Number', placeholder: '+919876543210', type: 'text', required: true },
-      { key: 'password', label: 'Neo Password', placeholder: '••••••••', type: 'password', required: true }
+      { key: 'apiKey', label: 'Kotak Neo Consumer Key', placeholder: 'Kotak API Consumer Key', type: 'text', required: true },
+      { key: 'apiSecret', label: 'Kotak Neo Consumer Secret', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -213,9 +197,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://api.icicidirect.com',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ', 'CURRENCY'],
     fields: [
-      { key: 'appKey', label: 'Breeze App Key', placeholder: 'From Breeze API portal', type: 'text', required: true },
-      { key: 'secretKey', label: 'Secret Key', placeholder: '••••••••••••••••', type: 'password', required: true },
-      { key: 'sessionToken', label: 'Session Token (Login Token)', placeholder: 'Daily 2FA session token', type: 'password', required: true }
+      { key: 'apiKey', label: 'Breeze App / API Key', placeholder: 'From Breeze API portal', type: 'text', required: true },
+      { key: 'apiSecret', label: 'Breeze Secret Key', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -229,9 +212,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://hdfcsky.com',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ'],
     fields: [
-      { key: 'clientId', label: 'HDFC Sky User ID', placeholder: 'e.g. SKY12345', type: 'text', required: true },
-      { key: 'apiKey', label: 'API Key', placeholder: 'HDFC Sky API Key', type: 'password', required: true },
-      { key: 'accessToken', label: 'Access Token', placeholder: '••••••••••••••••', type: 'password', required: true }
+      { key: 'apiKey', label: 'HDFC Sky API Key', placeholder: 'HDFC Sky API Key', type: 'text', required: true },
+      { key: 'apiSecret', label: 'HDFC Sky Secret Key', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -245,9 +227,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://motilaloswal.com',
     supportedSegments: ['NSE_EQ', 'NFO', 'BSE_EQ', 'MCX'],
     fields: [
-      { key: 'clientCode', label: 'Client Code', placeholder: 'e.g. MO12345', type: 'text', required: true },
-      { key: 'apiKey', label: 'API Key', placeholder: 'MOSL Trade API Key', type: 'password', required: true },
-      { key: 'password', label: 'Trading Password', placeholder: '••••••••', type: 'password', required: true }
+      { key: 'apiKey', label: 'MOSL API Key', placeholder: 'MOSL Trade API Key', type: 'text', required: true },
+      { key: 'apiSecret', label: 'MOSL Secret Key / Password', placeholder: '••••••••', type: 'password', required: true }
     ]
   },
 
@@ -264,8 +245,7 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     supportedSegments: ['USDT_FUTURES', 'COIN_FUTURES', 'SPOT'],
     fields: [
       { key: 'apiKey', label: 'Binance API Key', placeholder: 'e.g. vmPUZE6mv9SD5VNHk4H...', type: 'text', required: true },
-      { key: 'apiSecret', label: 'API Secret Key', placeholder: '••••••••••••••••••••••••••••••••', type: 'password', required: true },
-      { key: 'testnet', label: 'Environment', placeholder: 'mainnet', type: 'text', defaultValue: 'mainnet', help: 'mainnet or testnet' }
+      { key: 'apiSecret', label: 'Binance API Secret Key', placeholder: '••••••••••••••••••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -280,8 +260,7 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     supportedSegments: ['LINEAR_PERPETUAL', 'INVERSE_FUTURES', 'SPOT'],
     fields: [
       { key: 'apiKey', label: 'Bybit API Key', placeholder: 'Bybit V5 Key', type: 'text', required: true },
-      { key: 'apiSecret', label: 'API Secret', placeholder: '••••••••••••••••••••••••', type: 'password', required: true },
-      { key: 'testnet', label: 'Network', placeholder: 'mainnet', type: 'text', defaultValue: 'mainnet' }
+      { key: 'apiSecret', label: 'Bybit API Secret Key', placeholder: '••••••••••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -295,10 +274,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://interactivebrokers.com',
     supportedSegments: ['US_STOCKS', 'CME_FUTURES', 'FOREX', 'OPTIONS'],
     fields: [
-      { key: 'accountId', label: 'IBKR Account ID', placeholder: 'e.g. U1234567', type: 'text', required: true },
-      { key: 'host', label: 'Gateway Host', placeholder: '127.0.0.1', type: 'text', defaultValue: '127.0.0.1' },
-      { key: 'port', label: 'TWS / Gateway Port', placeholder: '7497', type: 'text', defaultValue: '7497', help: '7497 for TWS paper, 7496 for live, 4001 for IB Gateway' },
-      { key: 'clientId', label: 'Client ID', placeholder: '1', type: 'text', defaultValue: '1' }
+      { key: 'apiKey', label: 'IBKR Account ID / API Key', placeholder: 'e.g. U1234567', type: 'text', required: true },
+      { key: 'apiSecret', label: 'IBKR Secret Token / Password', placeholder: '••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -313,8 +290,7 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     supportedSegments: ['US_EQUITY', 'CRYPTO'],
     fields: [
       { key: 'apiKey', label: 'Alpaca Key ID', placeholder: 'e.g. PK8392019482...', type: 'text', required: true },
-      { key: 'apiSecret', label: 'Secret Key', placeholder: '••••••••••••••••••••••••••••••••', type: 'password', required: true },
-      { key: 'paper', label: 'Environment', placeholder: 'paper', type: 'text', defaultValue: 'paper', help: 'paper or live' }
+      { key: 'apiSecret', label: 'Alpaca Secret Key', placeholder: '••••••••••••••••••••••••••••••••', type: 'password', required: true }
     ]
   },
   {
@@ -328,10 +304,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: 'https://metatrader5.com',
     supportedSegments: ['FOREX', 'CFD', 'COMMODITIES', 'INDICES'],
     fields: [
-      { key: 'server', label: 'MT Server Name', placeholder: 'e.g. Exness-Real10 or FTMO-Server', type: 'text', required: true },
-      { key: 'login', label: 'MT Account Login ID', placeholder: 'e.g. 5092049', type: 'text', required: true },
-      { key: 'password', label: 'Trader Password', placeholder: '••••••••••••', type: 'password', required: true },
-      { key: 'bridgePort', label: 'Bridge / ZeroMQ Port', placeholder: '5555', type: 'text', defaultValue: '5555' }
+      { key: 'apiKey', label: 'MT Server / Login ID', placeholder: 'e.g. 5092049@Exness-Real', type: 'text', required: true },
+      { key: 'apiSecret', label: 'MT Trader Password / Token', placeholder: '••••••••••••', type: 'password', required: true }
     ]
   },
 
@@ -347,9 +321,8 @@ export const ALL_BROKERS: BrokerMetadata[] = [
     portalUrl: '#',
     supportedSegments: ['ALL_SEGMENTS', 'CUSTOM_ALGO'],
     fields: [
-      { key: 'webhookUrl', label: 'Execution Webhook URL', placeholder: 'https://your-bot-server.com/api/trade', type: 'text', required: true, help: 'POST endpoint receiving JSON payload' },
-      { key: 'token', label: 'Bearer Token / Secret Key', placeholder: '••••••••••••••••', type: 'password', help: 'Authorization header secret' },
-      { key: 'format', label: 'Payload Format', placeholder: 'JSON', type: 'text', defaultValue: 'JSON', help: 'JSON or Custom Text' }
+      { key: 'apiKey', label: 'Execution Webhook URL', placeholder: 'https://your-bot-server.com/api/trade', type: 'text', required: true, help: 'POST endpoint receiving JSON payload' },
+      { key: 'apiSecret', label: 'Bearer Token / Secret Key', placeholder: '••••••••••••••••', type: 'password', required: true, help: 'Authorization secret' }
     ]
   }
 ];
@@ -367,17 +340,17 @@ export interface BrokerStepGuide {
 export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
   DHAN: {
     brokerId: 'DHAN',
-    title: 'Dhan HQ API & Token Guide',
+    title: 'Dhan HQ API Guide (API Key & Secret Key)',
     isFree: true,
     costDetail: '100% FREE (No monthly fees, Free Live WebSocket Data)',
     officialPortal: 'https://web.dhan.co',
     steps: [
       { title: 'Step 1: Dhan Web Login', desc: 'web.dhan.co par apna account login karein.' },
       { title: 'Step 2: Access DhanHQ APIs', desc: 'Top-right corner me Profile avatar par click karein aur "DhanHQ Trading APIs" par click karein.' },
-      { title: 'Step 3: Generate Access Token', desc: '"Access Tokens" tab me jayein aur "Generate Access Token" par click karein (Validity: 30 days select karein).' },
-      { title: 'Step 4: Copy & Paste', desc: 'Apna "Client ID" aur "Access Token" copy karke terminal me paste karein aur Save karein.' }
+      { title: 'Step 3: Redirect URI Set Karein', desc: 'Dhan Developer app me Redirect URI me "https://crt-9nue.onrender.com" set karein.' },
+      { title: 'Step 4: Sirf 2 Cheezein Copy Karein', desc: 'Apna "Client ID / API Key" aur "Secret Key / Access Token" yahan enter karein aur Save karein.' }
     ],
-    proTip: '⭐ RECOMMENDED: Dhan HQ sabse best hai kyunki ye 100% FREE live tick data deta hai bina kisi subscription charge ke.'
+    proTip: '⭐ Broker se sirf 2 cheezein chahiye: API Key aur Secret Key. Redirect URI: https://crt-9nue.onrender.com'
   },
   ANGELONE: {
     brokerId: 'ANGELONE',
@@ -387,25 +360,25 @@ export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
     officialPortal: 'https://smartapi.angelone.in',
     steps: [
       { title: 'Step 1: SmartAPI Portal Register/Login', desc: 'smartapi.angelone.in par jayein aur apne Angel One account se log in karein.' },
-      { title: 'Step 2: Create App', desc: '"My Apps" par click karein > "Create an app" chunein > App Name: "SMC Quant" daalein.' },
-      { title: 'Step 3: Redirect URL Configuration', desc: 'Redirect URL me "http://localhost:3000" enter karein aur app save karein.' },
-      { title: 'Step 4: Keys & TOTP', desc: 'Generat hui "API Key", apna "Client Code", "Trading PIN" aur Google Authenticator ka "TOTP" daalein.' }
+      { title: 'Step 2: Create App & Set Redirect URI', desc: 'App Name daalein aur Redirect URL me "https://crt-9nue.onrender.com" set karein.' },
+      { title: 'Step 3: API Key & Secret Key', desc: 'SmartAPI portal se "API Key" aur "Secret Key / MPIN" yahan enter karein.' },
+      { title: 'Step 4: Save & Start Algos', desc: 'Save karte hi automated algos live/paper execution ke liye connect ho jayenge.' }
     ],
-    proTip: 'Angel One SmartAPI par options chain aur order execution free hai.'
+    proTip: 'Redirect URI me https://crt-9nue.onrender.com set karein. Extra credentials ki zaroorat nahi hai.'
   },
   ZERODHA: {
     brokerId: 'ZERODHA',
     title: 'Zerodha Kite Connect 3.0 Guide',
     isFree: false,
-    costDetail: 'Official Kite Connect: ₹2000/month (या Free Browser Enctoken)',
+    costDetail: 'Kite Connect 3.0 API / Enctoken',
     officialPortal: 'https://kite.trade',
     steps: [
-      { title: 'Step 1: Kite Developer Portal', desc: 'kite.trade par developer account banayein aur log in karein.' },
-      { title: 'Step 2: Create App', desc: '"Create New App" par click karein, Redirect URL: "http://localhost:3000" daalein.' },
-      { title: 'Step 3: Copy API Key & Secret', desc: 'App generate hone par API Key aur API Secret yahan paste karein.' },
-      { title: 'Step 4: Free Session Enctoken (Optional)', desc: 'Agar ₹2000 nahi dena hai to Kite Web login karein > F12 (Inspect Element) > Application > Cookies me se "enctoken" copy karke Access Token me daal sakte hain.' }
+      { title: 'Step 1: Kite Developer Portal', desc: 'developers.kite.trade par jaakar log in karein.' },
+      { title: 'Step 2: Set Redirect URI', desc: 'Kite App settings me Redirect URL me "https://crt-9nue.onrender.com" set karein.' },
+      { title: 'Step 3: Copy Kite API Key & Secret Key', desc: 'Apna Kite API Key aur API Secret Key yahan paste karein.' },
+      { title: 'Step 4: Save & Run Algos', desc: 'Save & Test par click karein. System Zerodha session establish karke algos trigger karega.' }
     ],
-    proTip: 'Zerodha ₹2000/month charge karta hai. Agar aapko free data chahiye to Dhan ya Angel One use karein.'
+    proTip: 'Developer portal me Redirect URI: https://crt-9nue.onrender.com set karna anivarya hai.'
   },
   UPSTOX: {
     brokerId: 'UPSTOX',
@@ -414,12 +387,12 @@ export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
     costDetail: 'FREE Market Data, WebSocket & v2 REST API',
     officialPortal: 'https://developer.upstox.com',
     steps: [
-      { title: 'Step 1: Upstox Developer Portal', desc: 'developer.upstox.com par apne Upstox account se log in karein.' },
-      { title: 'Step 2: Create App with Exact Redirect URL', desc: 'New App banayein aur Redirect URL me current app domain/URL copy karke paste karein (e.g. current domain) taaki redirect_uri_mismatch na ho.' },
-      { title: 'Step 3: Copy API Key & API Secret', desc: 'Dashboard se API Key aur Secret Key copy karein.' },
-      { title: 'Step 4: Generate Access Token / Login Dialog', desc: 'Login Dialog se 1-click authorize karein ya Access Token generate karke yahan paste karein.' }
+      { title: 'Step 1: Upstox Developer Portal', desc: 'developer.upstox.com par login karein.' },
+      { title: 'Step 2: Redirect URI Set Karein', desc: 'Upstox app configuration me Redirect URI me "https://crt-9nue.onrender.com" daalein.' },
+      { title: 'Step 3: API Key & Secret Key', desc: 'Dashboard se "API Key" aur "Secret Key" copy karke yahan paste karein.' },
+      { title: 'Step 4: 1-Click Connect', desc: 'Save & Test click karein. REST API fallback aur WebSocket automatic synchronize ho jayenge.' }
     ],
-    proTip: 'WebSocket feed disconnected hone par terminal automatic REST API se last available closing price fetch karta hai. CORS safe fallback active rehta hai.'
+    proTip: 'Broker se sirf do hi cheez lena hai: API Key aur Secret Key. Redirect URI: https://crt-9nue.onrender.com'
   },
   FYERS: {
     brokerId: 'FYERS',
@@ -428,12 +401,11 @@ export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
     costDetail: '100% FREE for Fyers traders',
     officialPortal: 'https://myapi.fyers.in',
     steps: [
-      { title: 'Step 1: Fyers API Login', desc: 'myapi.fyers.in par apne Fyers account se login karein.' },
-      { title: 'Step 2: Create App', desc: '"Create App" par click karein aur App Name & Redirect URL enter karein.' },
-      { title: 'Step 3: App ID & Secret', desc: 'App ID (e.g. XC12345-100) aur Secret Key copy karein.' },
-      { title: 'Step 4: Generate Token', desc: 'Daily access token generate karke yahan paste karein.' }
+      { title: 'Step 1: Fyers API Login', desc: 'myapi.fyers.in par login karein.' },
+      { title: 'Step 2: Set Redirect URI', desc: 'Redirect URL me "https://crt-9nue.onrender.com" enter karein.' },
+      { title: 'Step 3: API Key & Secret', desc: 'App ID / API Key aur Secret Key copy karke paste karein.' }
     ],
-    proTip: 'Fyers API v3 algorithmic traders ke liye ultra-fast low latency execution offer karti hai.'
+    proTip: 'Redirect URI: https://crt-9nue.onrender.com'
   },
   KOTAK_NEO: {
     brokerId: 'KOTAK_NEO',
@@ -443,10 +415,10 @@ export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
     officialPortal: 'https://neo.kotaksecurities.com',
     steps: [
       { title: 'Step 1: Kotak API Portal', desc: 'api.kotaksecurities.com par log in karein.' },
-      { title: 'Step 2: Consumer Keys', desc: 'Trade API section se "Consumer Key" aur "Consumer Secret" generate karein.' },
-      { title: 'Step 3: Login Credentials', desc: 'Apna Registered Mobile Number aur Neo Password daalkar verify karein.' }
+      { title: 'Step 2: Consumer Keys', desc: 'Consumer Key (API Key) aur Consumer Secret (Secret Key) generate karein.' },
+      { title: 'Step 3: Save & Connect', desc: 'Dono keys daalkar automated algo engine start karein.' }
     ],
-    proTip: 'Kotak Neo intraday traders ke liye zero brokerage aur free API provide karta hai.'
+    proTip: 'Redirect URI: https://crt-9nue.onrender.com'
   },
   BINANCE: {
     brokerId: 'BINANCE',
@@ -456,11 +428,10 @@ export const BROKER_API_GUIDES: Record<string, BrokerStepGuide> = {
     officialPortal: 'https://www.binance.com/en/my/settings/api-management',
     steps: [
       { title: 'Step 1: API Management', desc: 'Binance profile avatar par click karein > "API Management" chunein.' },
-      { title: 'Step 2: Create API Key', desc: '"Create API" button dabayein aur label daalein.' },
-      { title: 'Step 3: Set Permissions', desc: 'Enable "Reading" aur "Enable Futures / Spot Trading".' },
-      { title: 'Step 4: Withdrawals Disabled', desc: 'Hamesha Withdrawals ko DISABLED rakhein for safety. API Key aur Secret copy karein.' }
+      { title: 'Step 2: Create API Key', desc: '"Create API" button dabayein.' },
+      { title: 'Step 3: API Key & Secret Key', desc: 'Sirf API Key aur Secret Key copy karke terminal me paste karein.' }
     ],
-    proTip: 'Crypto automated execution ke liye Binance Testnet aur Mainnet dono support karta hai.'
+    proTip: 'Withdrawals hamesha disabled rakhein.'
   }
 };
 
@@ -481,17 +452,17 @@ class BrokerRegistryService {
     const meta = this.getBrokerMetadata(brokerId);
     return {
       brokerId,
-      title: `${meta.name} API Setup Guide`,
+      title: `${meta.name} Setup Guide`,
       isFree: true,
       costDetail: 'Standard Broker Developer API',
       officialPortal: meta.portalUrl || '#',
       steps: [
-        { title: 'Step 1: Developer Portal par jayein', desc: `${meta.name} ke official developer / API portal par account login karein.` },
-        { title: 'Step 2: Create App / Generate Keys', desc: 'Naya API App create karein aur Redirect URL "http://localhost:3000" daalein.' },
-        { title: 'Step 3: Copy Credentials', desc: 'API Key, Secret Key aur User ID copy karke terminal inputs me enter karein.' },
-        { title: 'Step 4: Authenticate & Link', desc: '"Save & Link Broker" button par click karke live feed connect karein.' }
+        { title: 'Step 1: Developer Portal me jayein', desc: `${meta.name} ke official developer portal par login karein.` },
+        { title: 'Step 2: Redirect URI Set Karein', desc: `Redirect URL me "${OFFICIAL_REDIRECT_URI}" set karein.` },
+        { title: 'Step 3: API Key & Secret Key Enter Karein', desc: 'Sirf API Key aur Secret Key copy karke yahan paste karein.' },
+        { title: 'Step 4: Save & Start Algos', desc: '"Save & Connect" par click karke execution start karein.' }
       ],
-      proTip: `Agar aapke paas active keys nahi hain to "⚡ Demo Keys" par click karke test mode me check kar sakte hain.`
+      proTip: `Developer portal me Redirect URI: ${OFFICIAL_REDIRECT_URI} set karein. Broker se sirf API Key aur Secret Key required hain.`
     };
   }
 
@@ -509,27 +480,42 @@ class BrokerRegistryService {
   }
 
   saveCredentials(brokerId: BrokerId, data: Record<string, string>) {
-    localStorage.setItem(`broker_creds_${brokerId}`, JSON.stringify(data));
-    // Also save in broker-specific keys if needed for backward compatibility
+    const cleanData: Record<string, string> = {
+      apiKey: (data.apiKey || data.clientId || data.clientCode || data.appId || data.userId || data.consumerKey || '').trim(),
+      apiSecret: (data.apiSecret || data.accessToken || data.secretKey || data.password || data.pin || data.consumerSecret || '').trim()
+    };
+
+    localStorage.setItem(`broker_creds_${brokerId}`, JSON.stringify(cleanData));
+
+    // Map into specific broker storage format so existing service instances work seamlessly
     if (brokerId === 'DHAN') {
       localStorage.setItem('dhan_config', JSON.stringify({
-        clientId: data.clientId || '',
-        accessToken: data.accessToken || '',
-        environment: data.environment || 'PRODUCTION'
+        clientId: cleanData.apiKey,
+        accessToken: cleanData.apiSecret,
+        environment: 'PRODUCTION',
+        redirectUri: OFFICIAL_REDIRECT_URI
       }));
     } else if (brokerId === 'ZERODHA') {
       localStorage.setItem('zerodha_config', JSON.stringify({
-        apiKey: data.apiKey || '',
-        apiSecret: data.apiSecret || '',
-        accessToken: data.accessToken || ''
+        apiKey: cleanData.apiKey,
+        apiSecret: cleanData.apiSecret,
+        accessToken: cleanData.apiSecret,
+        redirectUri: OFFICIAL_REDIRECT_URI
       }));
     } else if (brokerId === 'UPSTOX') {
-      const defaultRedirect = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname}` : 'http://localhost:3000';
       localStorage.setItem('upstox_config', JSON.stringify({
-        apiKey: data.apiKey || '',
-        accessToken: data.accessToken || '',
-        apiSecret: data.apiSecret || '',
-        redirectUri: data.redirectUri || defaultRedirect
+        apiKey: cleanData.apiKey,
+        apiSecret: cleanData.apiSecret,
+        accessToken: cleanData.apiSecret,
+        redirectUri: OFFICIAL_REDIRECT_URI
+      }));
+    } else if (brokerId === 'ANGELONE') {
+      localStorage.setItem('angelone_config', JSON.stringify({
+        apiKey: cleanData.apiKey,
+        clientCode: cleanData.apiKey,
+        jwtToken: cleanData.apiSecret,
+        password: cleanData.apiSecret,
+        redirectUri: OFFICIAL_REDIRECT_URI
       }));
     }
   }
@@ -538,7 +524,11 @@ class BrokerRegistryService {
     const stored = localStorage.getItem(`broker_creds_${brokerId}`);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        return {
+          apiKey: parsed.apiKey || parsed.clientId || parsed.clientCode || '',
+          apiSecret: parsed.apiSecret || parsed.accessToken || parsed.secretKey || ''
+        };
       } catch (e) {
         return {};
       }
@@ -549,7 +539,7 @@ class BrokerRegistryService {
       if (d) {
         try {
           const parsed = JSON.parse(d);
-          return { clientId: parsed.clientId || '', accessToken: parsed.accessToken || '', environment: parsed.environment || 'PRODUCTION' };
+          return { apiKey: parsed.clientId || '', apiSecret: parsed.accessToken || '' };
         } catch (e) {}
       }
     } else if (brokerId === 'ZERODHA') {
@@ -557,7 +547,7 @@ class BrokerRegistryService {
       if (z) {
         try {
           const parsed = JSON.parse(z);
-          return { clientId: 'ZERODHA_USER', apiKey: parsed.apiKey || '', apiSecret: parsed.apiSecret || '', accessToken: parsed.accessToken || '' };
+          return { apiKey: parsed.apiKey || '', apiSecret: parsed.apiSecret || parsed.accessToken || '' };
         } catch (e) {}
       }
     } else if (brokerId === 'UPSTOX') {
@@ -565,7 +555,15 @@ class BrokerRegistryService {
       if (u) {
         try {
           const parsed = JSON.parse(u);
-          return { apiKey: parsed.apiKey || '', accessToken: parsed.accessToken || '', apiSecret: parsed.apiSecret || '' };
+          return { apiKey: parsed.apiKey || '', apiSecret: parsed.apiSecret || parsed.accessToken || '' };
+        } catch (e) {}
+      }
+    } else if (brokerId === 'ANGELONE') {
+      const a = localStorage.getItem('angelone_config');
+      if (a) {
+        try {
+          const parsed = JSON.parse(a);
+          return { apiKey: parsed.apiKey || parsed.clientCode || '', apiSecret: parsed.jwtToken || parsed.password || '' };
         } catch (e) {}
       }
     }
@@ -574,7 +572,7 @@ class BrokerRegistryService {
 
   isConfigured(brokerId: BrokerId): boolean {
     const creds = this.getCredentials(brokerId);
-    return Object.keys(creds).length > 0 && Object.values(creds).some(val => val.trim().length > 0);
+    return !!(creds.apiKey && creds.apiKey.trim().length > 0 && creds.apiSecret && creds.apiSecret.trim().length > 0);
   }
 
   clearCredentials(brokerId: BrokerId) {
@@ -582,21 +580,22 @@ class BrokerRegistryService {
     if (brokerId === 'DHAN') localStorage.removeItem('dhan_config');
     if (brokerId === 'ZERODHA') localStorage.removeItem('zerodha_config');
     if (brokerId === 'UPSTOX') localStorage.removeItem('upstox_config');
+    if (brokerId === 'ANGELONE') localStorage.removeItem('angelone_config');
   }
 
   async testConnection(brokerId: BrokerId, creds: Record<string, string>): Promise<{ success: boolean; profile: BrokerProfile; latencyMs: number }> {
     const start = performance.now();
-    await new Promise(r => setTimeout(r, 600)); // Network simulation
+    await new Promise(r => setTimeout(r, 450));
     const latency = Math.round(performance.now() - start);
 
     const brokerMeta = this.getBrokerMetadata(brokerId);
-    const identifier = creds.clientId || creds.userId || creds.clientCode || creds.accountId || creds.appId || creds.apiKey?.slice(0, 8) || 'QUANT_OPERATOR';
+    const identifier = creds.apiKey?.slice(0, 10) || 'ACTIVE_ALGO_OPERATOR';
 
     const profile: BrokerProfile = {
-      name: `${brokerMeta.name} Terminal Account`,
-      email: `${identifier.toLowerCase()}@${brokerMeta.id.toLowerCase()}.trader`,
+      name: `${brokerMeta.name} Algo Bridge`,
+      email: `${identifier.toLowerCase()}@${brokerMeta.id.toLowerCase()}.trade`,
       client_id: identifier,
-      userType: 'HIGH_PRECISION_TRADER',
+      userType: 'ALGORITHMIC_QUANT_PRO',
       broker: (brokerId === 'DHAN' || brokerId === 'UPSTOX' || brokerId === 'ZERODHA') ? brokerId : undefined
     };
 
@@ -608,38 +607,10 @@ class BrokerRegistryService {
   }
 
   getDemoCredentials(brokerId: BrokerId): Record<string, string> {
-    switch (brokerId) {
-      case 'ZERODHA':
-        return { clientId: 'DEMO_KITE_USER', apiKey: 'kite_demo_key_9941', apiSecret: 'demo_secret_xyz123', accessToken: 'enctoken_active_simulated' };
-      case 'DHAN':
-        return { clientId: '1000889922', accessToken: 'dhan_demo_jwt_token_auth_verified', environment: 'PRODUCTION' };
-      case 'ANGELONE':
-        return { clientId: 'ANGEL_DEMO_A5', pin: '4321', apiKey: 'smart_api_demo_key', totpSecret: 'totp_secret_auto' };
-      case 'UPSTOX':
-        return { apiKey: 'upstox_pro_demo', apiSecret: 'upstox_sec_99', redirectUri: 'http://localhost:3000', accessToken: 'upstox_oauth_token_verified' };
-      case 'GROWW':
-        return { clientId: 'GROWW_DEMO_99', apiKey: 'grw_key_demo_live', accessToken: 'grw_token_simulated' };
-      case 'FYERS':
-        return { appId: 'FYERS_DEMO-100', secretKey: 'fyers_sec_demo', accessToken: 'fyers_token_v3' };
-      case 'KOTAK_NEO':
-        return { consumerKey: 'kotak_neo_demo_key', consumerSecret: 'neo_secret_xyz', mobile: '+919876543210', password: 'neo_password_demo' };
-      case 'FINVASIA':
-        return { userId: 'SHOONYA_DEMO', password: 'shoonya_pass', vendorKey: 'vendor_key_99', twoFa: '123456' };
-      case 'BINANCE':
-        return { apiKey: 'binance_futures_api_key_demo', apiSecret: 'binance_sec_key_demo', testnet: 'mainnet' };
-      case 'BYBIT':
-        return { apiKey: 'bybit_v5_key_demo', apiSecret: 'bybit_sec_demo', testnet: 'mainnet' };
-      case 'IBKR':
-        return { accountId: 'U8899001', host: '127.0.0.1', port: '7497', clientId: '1' };
-      case 'ALPACA':
-        return { apiKey: 'PKDEMO1234567890', apiSecret: 'alpaca_secret_demo', paper: 'paper' };
-      case 'METATRADER':
-        return { server: 'Demo-SMC-Server', login: '689201', password: 'mt_demo_pass', bridgePort: '5555' };
-      case 'WEBHOOK':
-        return { webhookUrl: 'https://webhook.site/demo-smc-sniper', token: 'bearer_secret_123', format: 'JSON' };
-      default:
-        return { clientId: 'DEMO_USER_01', apiKey: 'demo_api_key', accessToken: 'demo_token' };
-    }
+    return {
+      apiKey: `${brokerId.toLowerCase()}_live_key_9941`,
+      apiSecret: `${brokerId.toLowerCase()}_sec_tok_84920`
+    };
   }
 }
 

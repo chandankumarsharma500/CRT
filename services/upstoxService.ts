@@ -153,13 +153,7 @@ class UpstoxApiService implements UnifiedBrokerService {
    * Prevents redirect_uri_mismatch on preview/cloud domains
    */
   getDefaultRedirectUri(): string {
-    if (typeof window !== 'undefined') {
-      // Use clean origin or full path without query/hash
-      const origin = window.location.origin;
-      const pathname = window.location.pathname === '/' ? '' : window.location.pathname;
-      return `${origin}${pathname}`;
-    }
-    return 'http://localhost:3000';
+    return 'https://crt-9nue.onrender.com';
   }
 
   /**

@@ -25,12 +25,14 @@ import {
   ArrowRight, 
   ShieldCheck, 
   Award,
-  Cpu
+  Cpu,
+  BookOpen
 } from 'lucide-react';
 import { CRTLogic, CRT_SUPPORTED_ASSETS } from '../services/crtLogic';
 import { CRTTimeframe, CRTMultiTFAnalysis, CRTCandleMarking, FiveMinExecutionModel } from '../types';
 import { CRTKillZoneView, CRTSMTDivergenceView, CRTQualityScoreView } from './CRTHighAccuracyFilters';
 import { QuantumCoreMetricsView } from './QuantumCoreMetricsView';
+import { CRTPdfModelView } from './CRTPdfModelView';
 
 export const CRTStrategy: React.FC = () => {
   const [selectedSymbol, setSelectedSymbol] = useState<string>('NIFTY');
@@ -38,6 +40,7 @@ export const CRTStrategy: React.FC = () => {
   const [analysis, setAnalysis] = useState<CRTMultiTFAnalysis | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
+    | 'CRT_PDF_MASTER'
     | 'FIVE_MIN_SNIPER' 
     | 'QUANTUM_CORE'
     | 'QUALITY_GRADER'
@@ -47,7 +50,7 @@ export const CRTStrategy: React.FC = () => {
     | 'VISUAL_RANGES' 
     | 'SIGNALS' 
     | 'CONFLUENCE_MATRIX'
-  >('FIVE_MIN_SNIPER');
+  >('CRT_PDF_MASTER');
   const [activeSniperTF, setActiveSniperTF] = useState<CRTTimeframe>('DAILY');
 
   const refreshData = () => {
@@ -201,6 +204,16 @@ export const CRTStrategy: React.FC = () => {
         {/* View Tabs */}
         <div className="flex flex-wrap bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
           <button
+            onClick={() => setActiveTab('CRT_PDF_MASTER')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+              activeTab === 'CRT_PDF_MASTER'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <BookOpen size={14} className="text-amber-300 animate-pulse" /> 📖 CRT PDF Master Strategy (9-Step Model)
+          </button>
+          <button
             onClick={() => setActiveTab('FIVE_MIN_SNIPER')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
               activeTab === 'FIVE_MIN_SNIPER'
@@ -313,7 +326,12 @@ export const CRTStrategy: React.FC = () => {
         )}
       </div>
 
-      {/* TAB 0: 5-MINUTE SNIPER EXECUTION ENGINE (PRIMARY USER REQUEST) */}
+      {/* TAB 0: CRT PDF STRATEGY MASTER FLOW (AYUB RANA / ICT BLUEPRINT) */}
+      {activeTab === 'CRT_PDF_MASTER' && (
+        <CRTPdfModelView analysis={analysis} selectedSymbol={selectedSymbol} />
+      )}
+
+      {/* TAB 1: 5-MINUTE SNIPER EXECUTION ENGINE (PRIMARY USER REQUEST) */}
       {activeTab === 'FIVE_MIN_SNIPER' && (
         <div className="space-y-6">
           {/* HTF Setup Anchor Selector */}

@@ -159,12 +159,7 @@ class ZerodhaApiService implements UnifiedBrokerService {
   // --- Dynamic Redirect URI & Kite Connect OAuth Dialog ---
 
   getDefaultRedirectUri(): string {
-    if (typeof window !== 'undefined') {
-      const origin = window.location.origin;
-      const pathname = window.location.pathname === '/' ? '' : window.location.pathname;
-      return `${origin}${pathname}`;
-    }
-    return 'http://localhost:3000';
+    return 'https://crt-9nue.onrender.com';
   }
 
   getOAuthDialogUrl(apiKeyOverride?: string, redirectUriOverride?: string): string {

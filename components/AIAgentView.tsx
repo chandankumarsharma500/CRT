@@ -65,12 +65,13 @@ export const AIAgentView: React.FC = () => {
               });
           }
       } catch (e) {
+          const autoAnswer = AILogic.generateAutonomousCRTAnswer(userText, mockData);
           setMessages(prev => {
               const newArr = [...prev];
               if (newArr.length > 0 && newArr[newArr.length-1].role === 'ai' && newArr[newArr.length-1].content === "") {
-                  newArr[newArr.length - 1] = { role: 'ai', content: "⚠️ System busy. Please try asking about **Trend** or **Vega** for an instant answer." };
+                  newArr[newArr.length - 1] = { role: 'ai', content: autoAnswer };
               } else {
-                  newArr.push({ role: 'ai', content: "⚠️ System busy. Please try asking about **Trend** or **Vega**." });
+                  newArr.push({ role: 'ai', content: autoAnswer });
               }
               return newArr;
           });

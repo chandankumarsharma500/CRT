@@ -80,14 +80,7 @@ export const getBrokerService = (requestedId?: BrokerId): UnifiedBrokerService =
       };
     },
 
-    getDefaultRedirectUri: () => {
-      if (typeof window !== 'undefined') {
-        const origin = window.location.origin;
-        const pathname = window.location.pathname === '/' ? '' : window.location.pathname;
-        return `${origin}${pathname}`;
-      }
-      return 'http://localhost:3000';
-    },
+    getDefaultRedirectUri: () => 'https://crt-9nue.onrender.com',
 
     getOAuthDialogUrl: () => brokerMeta.portalUrl || '#',
     checkForRedirectCode: () => ({ code: null, state: null }),

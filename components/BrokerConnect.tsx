@@ -267,7 +267,7 @@ export const BrokerConnect: React.FC = () => {
       {/* Navigation Sub-Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3">
         {[
-          { id: 'CONNECT', label: 'Connect Broker (API & Secret Key)', icon: Key },
+          { id: 'CONNECT', label: 'Connect Broker (Sirf API Key & Secret Key)', icon: Key },
           { id: 'API_GUIDE', label: '📖 API Key Kaise Le? (Step-by-Step)', icon: BookOpen },
           { id: 'CONFIGURED_LIST', label: 'Connected Accounts & Active Data Feed', icon: Layers },
         ].map(tab => (
@@ -284,6 +284,41 @@ export const BrokerConnect: React.FC = () => {
             {tab.label}
           </button>
         ))}
+      </div>
+
+      {/* Developer Portals Redirect URI & 2-Field Requirement Announcement */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-indigo-900/20 border border-indigo-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-indigo-600/30">
+            <Globe size={20} />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-xs font-black uppercase text-indigo-400 tracking-wider">
+                Official Developer Portal Redirect URI
+              </h4>
+              <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                Zerodha Kite • Dhan HQ • Angel One • Upstox
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+              Zerodha, Dhan, Angel One, aur Upstox ke developer portals par jakar <strong>Redirect URI</strong> me <span className="font-mono text-amber-300 font-bold">https://crt-9nue.onrender.com</span> set karein.
+              Aapko broker se <strong>sirf do hi cheez lena hai: API Key aur Secret Key</strong> — baki sabhi connections automatic hain!
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 w-full md:w-auto shrink-0 self-end md:self-center">
+          <code className="text-[11px] font-mono bg-slate-950 px-3.5 py-2 rounded-xl border border-indigo-500/30 text-indigo-200 select-all shadow-inner">
+            https://crt-9nue.onrender.com
+          </code>
+          <button
+            onClick={handleCopyRedirectUri}
+            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/30"
+          >
+            {copiedRedirect ? <Check size={13} /> : <Copy size={13} />}
+            {copiedRedirect ? 'Copied!' : 'Copy URI'}
+          </button>
+        </div>
       </div>
 
       {/* TAB 1: CONNECT BROKER */}
