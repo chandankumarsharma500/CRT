@@ -217,14 +217,6 @@ export const App: React.FC = () => {
               </div>
             );
           })}
-
-          <button
-            onClick={handleManualYahooSync}
-            title="Refresh Yahoo Finance Market Data"
-            className="p-1.5 rounded text-slate-400 hover:text-cyan-400 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-          >
-            <RefreshCw size={13} className={isSyncingYahoo ? 'animate-spin text-cyan-400' : ''} />
-          </button>
         </div>
 
         {/* Action Controls & Fast Triggers (Right) */}

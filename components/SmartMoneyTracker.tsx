@@ -79,6 +79,8 @@ export const SmartMoneyTracker: React.FC = () => {
 
   useEffect(() => {
     scanMarket();
+    const interval = setInterval(scanMarket, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Compute aggregate stats across scanned indices
@@ -113,14 +115,10 @@ export const SmartMoneyTracker: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          <button 
-            onClick={scanMarket}
-            disabled={loading}
-            className={`flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/20 active:scale-95 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
-          >
-            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            {loading ? 'Scanning Market...' : 'Rescan Market'}
-          </button>
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl font-bold text-xs font-mono uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span>AUTO-SCAN 1s</span>
+          </div>
         </div>
       </div>
 

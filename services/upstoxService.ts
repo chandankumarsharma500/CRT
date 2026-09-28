@@ -19,17 +19,17 @@ export const UPSTOX_INSTRUMENT_MAP: Record<string, string> = {
 
 // Default baseline closing prices for indices (in case of fresh launch or off-market hours)
 const BASELINE_CLOSES: Record<string, number> = {
-  nifty: 24855.20,
-  bank_nifty: 51340.50,
-  fin_nifty: 23410.80,
-  midcap: 12850.30,
+  nifty: 23660.65,
+  bank_nifty: 55580.40,
+  fin_nifty: 25094.85,
+  midcap: 60906.00,
   next_50: 71200.00,
-  sensex: 81450.60,
+  sensex: 73895.74,
   bankex: 57900.20,
-  nifty_it: 39500.40,
-  nifty_auto: 24600.80,
-  nifty_fmcg: 58200.10,
-  nifty_pharma: 21800.50,
+  nifty_it: 28160.90,
+  nifty_auto: 24150.00,
+  nifty_fmcg: 59300.00,
+  nifty_pharma: 22100.00,
   nifty_metal: 9450.30
 };
 

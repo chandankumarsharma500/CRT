@@ -114,6 +114,32 @@ const applyLiveTick = () => {
 if (typeof window !== 'undefined') {
   if (tickInterval) clearInterval(tickInterval);
   tickInterval = setInterval(applyLiveTick, 1000);
+
+  // Sync real-time updates from TradingView Service
+  tradingViewService.subscribe((tvQuotes) => {
+    let changed = false;
+    Object.entries(tvQuotes).forEach(([id, tvQ]) => {
+      const existing = quoteCache[id];
+      if (existing && tvQ && tvQ.price > 0) {
+        quoteCache[id] = {
+          ...existing,
+          price: tvQ.price,
+          change: tvQ.change,
+          changePercent: tvQ.changePercent,
+          high: Math.max(existing.high, tvQ.high),
+          low: Math.min(existing.low, tvQ.low),
+          open: tvQ.open,
+          lastUpdated: tvQ.lastUpdated,
+          source: tvQ.source
+        };
+        changed = true;
+      }
+    });
+    if (changed) {
+      const snap = { ...quoteCache };
+      listeners.forEach(fn => { try { fn(snap); } catch (_) {} });
+    }
+  });
 }
 
 export const yahooFinanceService = {

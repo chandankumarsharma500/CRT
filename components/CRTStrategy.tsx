@@ -29,6 +29,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { CRTLogic, CRT_SUPPORTED_ASSETS } from '../services/crtLogic';
+import { yahooFinanceService } from '../services/yahooFinanceService';
 import { CRTTimeframe, CRTMultiTFAnalysis, CRTCandleMarking, FiveMinExecutionModel } from '../types';
 import { CRTKillZoneView, CRTSMTDivergenceView, CRTQualityScoreView } from './CRTHighAccuracyFilters';
 import { QuantumCoreMetricsView } from './QuantumCoreMetricsView';
@@ -54,14 +55,25 @@ export const CRTStrategy: React.FC = () => {
   const [activeSniperTF, setActiveSniperTF] = useState<CRTTimeframe>('DAILY');
 
   const refreshData = () => {
-    setIsRefreshing(true);
-    const result = CRTLogic.analyzeAsset(selectedSymbol);
+    const symbolMap: Record<string, string> = {
+      'NIFTY': 'nifty',
+      'BANKNIFTY': 'bank_nifty',
+      'FINNIFTY': 'fin_nifty',
+      'MIDCPNIFTY': 'midcap',
+      'SENSEX': 'sensex'
+    };
+    const key = symbolMap[selectedSymbol] || 'nifty';
+    const liveQ = yahooFinanceService.getQuote(key);
+    const result = CRTLogic.analyzeAsset(selectedSymbol, liveQ?.price);
     setAnalysis(result);
-    setTimeout(() => setIsRefreshing(false), 400);
   };
 
   useEffect(() => {
     refreshData();
+    const unsub = yahooFinanceService.subscribe(() => {
+      refreshData();
+    });
+    return () => unsub();
   }, [selectedSymbol]);
 
   if (!analysis) return null;
@@ -115,14 +127,10 @@ export const CRTStrategy: React.FC = () => {
               ))}
             </div>
 
-            <button
-              onClick={refreshData}
-              disabled={isRefreshing}
-              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl border border-slate-700 transition-all active:scale-95 flex items-center justify-center"
-              title="Refresh CRT Scan"
-            >
-              <RefreshCw size={18} className={isRefreshing ? 'animate-spin text-indigo-400' : ''} />
-            </button>
+            <div className="px-3.5 py-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl font-mono text-xs font-bold flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>AUTO-STREAM 1s</span>
+            </div>
           </div>
         </div>
 

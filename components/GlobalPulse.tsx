@@ -44,15 +44,13 @@ export const GlobalPulse: React.FC = () => {
                 
                 <div className="flex items-center gap-4">
                     <div className="text-right hidden md:block">
-                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Last Neural Sync</p>
-                        <p className="text-sm font-mono text-white">{lastSync || 'Syncing...'}</p>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Stream</p>
+                        <p className="text-sm font-mono text-emerald-400 font-bold">{lastSync || 'Syncing...'}</p>
                     </div>
-                    <button 
-                        onClick={refreshData}
-                        className="p-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
-                    >
-                        <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                    </button>
+                    <div className="px-3.5 py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl font-mono text-xs font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <span>AUTO 1s</span>
+                    </div>
                 </div>
             </div>
 

@@ -67,18 +67,10 @@ export const IndicesTracker: React.FC<{ darkMode?: boolean }> = ({ darkMode }) =
           </p>
         </div>
 
-        <button 
-          onClick={async () => {
-            setLoading(true);
-            await yahooFinanceService.refreshAll();
-            await fetchData();
-            setLoading(false);
-          }} 
-          className="px-4 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-200 border border-black/5 dark:border-white/10 rounded-xl font-mono text-xs font-bold flex items-center gap-2 transition-all active:scale-95"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin text-cyan-400' : ''} />
-          <span>SYNC TICKS</span>
-        </button>
+        <div className="px-3.5 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl font-mono text-xs font-bold flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>AUTO-STREAM 1s</span>
+        </div>
       </div>
 
       {/* Search Bar */}

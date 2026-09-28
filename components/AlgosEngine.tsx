@@ -247,6 +247,7 @@ export const AlgosEngine: React.FC = () => {
   const [isClaudeThinking, setIsClaudeThinking] = useState<boolean>(false);
   const [showClaudeKeyModal, setShowClaudeKeyModal] = useState<boolean>(false);
   const [claudeApiKeyInput, setClaudeApiKeyInput] = useState<string>(() => ClaudeService.getClaudeApiKey());
+  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>(() => ClaudeService.getGeminiApiKey());
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
   const claudeChatEndRef = useRef<HTMLDivElement>(null);
 
@@ -684,14 +685,10 @@ export const AlgosEngine: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={fetchYahooQuotes}
-              disabled={isSyncingYahoo}
-              className="px-3 py-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-300 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all border border-black/5 dark:border-white/10 disabled:opacity-50"
-            >
-              <RefreshCw size={12} className={isSyncingYahoo ? 'animate-spin text-cyan-400' : ''} />
-              {isSyncingYahoo ? 'Fetching Yahoo...' : 'Sync Yahoo Finance'}
-            </button>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>AUTOMATIC LIVE FEED · 1s TICK</span>
+            </div>
           </div>
         </div>
 
@@ -737,7 +734,7 @@ export const AlgosEngine: React.FC = () => {
             <div>
               <div className="flex flex-wrap items-center gap-2 font-mono">
                 <h3 className="text-base lg:text-lg font-black font-display text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  Claude AI Trading Copilot
+                  Claude & Gemini AI Trading Copilot
                 </h3>
                 <span className="text-[10px] text-amber-400 font-extrabold uppercase">
                   · AYUB RANA CRT PDF MODEL
@@ -769,11 +766,11 @@ export const AlgosEngine: React.FC = () => {
               {copiedPayload ? 'Copied Context' : 'Copy for Claude'}
             </button>
 
-            {/* Claude API Key config */}
+            {/* Claude & Gemini API Key config */}
             <button
               onClick={() => setShowClaudeKeyModal(!showClaudeKeyModal)}
               className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition-all"
-              title="Configure Claude API Key (Optional)"
+              title="Configure Gemini & Claude API Keys (Optional)"
             >
               <Key size={16} />
             </button>
@@ -782,35 +779,62 @@ export const AlgosEngine: React.FC = () => {
 
         {/* API Key Drawer (Optional) */}
         {showClaudeKeyModal && (
-          <div className="mt-4 p-4 rounded-2xl bg-slate-950/80 border border-purple-500/30 animate-in fade-in duration-200">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="mt-4 p-4 rounded-2xl bg-slate-950/90 border border-purple-500/30 animate-in fade-in duration-200 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-purple-500/20">
               <div>
                 <h5 className="text-xs font-black uppercase text-purple-300 flex items-center gap-1.5">
                   <Key size={13} />
-                  Anthropic Claude API Key (Optional)
+                  Google AI Studio (Gemini) & Claude API Keys (Optional)
                 </h5>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Agar aapke paas Claude API key (<code className="text-indigo-400">sk-ant-...</code>) hai to yahan enter karein. Agar nahi hai, to hamara Autonomous Ayub Rana CRT Engine bina kisi key ke 100% free kaam karta hai!
+                  Enter your Google AI Studio Gemini API Key or Anthropic Claude Key. Agar koi key nahi hai, to hamara Autonomous CRT Engine 100% free offline kaam karta hai!
                 </p>
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <input
-                  type="password"
-                  placeholder="sk-ant-api03-..."
-                  value={claudeApiKeyInput}
-                  onChange={(e) => setClaudeApiKeyInput(e.target.value)}
-                  className="bg-slate-900 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full sm:w-64 font-mono"
-                />
-                <button
-                  onClick={() => {
-                    ClaudeService.setClaudeApiKey(claudeApiKeyInput);
-                    setShowClaudeKeyModal(false);
-                    addLog('CLAUDE', 'Claude API Key configuration updated successfully.');
-                  }}
-                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
-                >
-                  Save
-                </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono uppercase font-bold text-amber-400">Google AI Studio (Gemini API Key):</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={geminiApiKeyInput}
+                    onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                    className="bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
+                  />
+                  <button
+                    onClick={() => {
+                      ClaudeService.setGeminiApiKey(geminiApiKeyInput);
+                      addLog('CLAUDE', 'Google AI Studio Gemini API Key saved.');
+                    }}
+                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-mono uppercase font-bold text-purple-400">Anthropic Claude API Key:</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    placeholder="sk-ant-api03-..."
+                    value={claudeApiKeyInput}
+                    onChange={(e) => setClaudeApiKeyInput(e.target.value)}
+                    className="bg-slate-900 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
+                  />
+                  <button
+                    onClick={() => {
+                      ClaudeService.setClaudeApiKey(claudeApiKeyInput);
+                      addLog('CLAUDE', 'Claude API Key saved.');
+                    }}
+                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -22,23 +22,16 @@ export const FinancialAnalyst: React.FC = () => {
     const [copiedClaudeContext, setCopiedClaudeContext] = useState<boolean>(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const syncMarket = async () => {
-        try {
-            const quotes = await yahooFinanceService.getDetailedQuotes();
+    useEffect(() => {
+        const unsub = yahooFinanceService.subscribe((quotes) => {
             if (quotes['nifty']) {
                 setYahooQuote(quotes['nifty']);
             }
-            const data = await dhanService.fetchIndicesMarketData();
-            if (data && data.length > 0) {
-                setLatestData(data[0]);
-            }
-        } catch (_) {}
-    };
-
-    useEffect(() => {
-        syncMarket();
-        const timer = setInterval(syncMarket, 6000);
-        return () => clearInterval(timer);
+        });
+        dhanService.fetchIndicesMarketData().then(data => {
+            if (data && data.length > 0) setLatestData(data[0]);
+        }).catch(() => {});
+        return () => unsub();
     }, []);
 
     useEffect(() => {
@@ -135,13 +128,10 @@ export const FinancialAnalyst: React.FC = () => {
                         {copiedClaudeContext ? 'Copied & Opening...' : 'Open in Claude.ai'}
                     </button>
 
-                    <button 
-                        onClick={syncMarket}
-                        className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-indigo-500 rounded-xl border border-slate-200 dark:border-slate-700 transition-all"
-                        title="Sync Yahoo Finance Quotes"
-                    >
-                        <RefreshCw size={15} className={isLoading ? 'animate-spin text-indigo-500' : ''} />
-                    </button>
+                    <div className="px-3 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl font-mono text-[11px] font-bold flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        <span>AUTO 1s</span>
+                    </div>
                 </div>
             </div>
 

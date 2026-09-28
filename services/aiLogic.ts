@@ -67,8 +67,8 @@ export class AILogic {
 
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
-        const ltp = nifty?.price || 24865;
-        const change = nifty?.change || 45;
+        const ltp = nifty?.price || 23660.65;
+        const change = nifty?.change || 77.4;
         const isBullish = change >= 0;
 
         const apiKey = this.getSafeApiKey();
@@ -106,7 +106,7 @@ export class AILogic {
     static async generateScalpAnalysis(data: MarketDataPoint, price: number): Promise<AIAnalysisResult> {
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
-        const currentPrice = price || nifty?.price || 24865;
+        const currentPrice = price || nifty?.price || 23660.65;
 
         const apiKey = this.getSafeApiKey();
         if (!apiKey) return this.getLocalAnalysis(data);
@@ -155,15 +155,16 @@ export class AILogic {
     static getLocalAnalysis(data: MarketDataPoint): AIAnalysisResult {
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
-        const ltp = nifty?.price || 24865;
+        const ltp = nifty?.price || 23660.65;
         const isBullish = (nifty?.change || 0) >= 0 || data.trend === 'Bullish';
+        const strikeRound = Math.round(ltp / 50) * 50;
 
         return {
-            reasoning: `Ayub Rana Candle Range Theory (CRT) & Quantitative Core active. Live Yahoo Finance NIFTY: ₹${ltp.toFixed(2)}. C2 Liquidity sweep filter engaged with C3 5M MSS retest.`,
+            reasoning: `Ayub Rana Candle Range Theory (CRT) & Quantitative Core active. Live NIFTY: ₹${ltp.toFixed(2)}. C2 Liquidity sweep filter engaged with C3 5M MSS retest.`,
             prediction: isBullish ? 'BULLISH' : 'BEARISH',
             confidence: 96.8,
             summary: `Ayub Rana CRT Setup: C2 Liquidity sweep confirmed. Tracking 0.5 Equilibrium target ₹${(ltp + (isBullish ? 35 : -35)).toFixed(0)}.`,
-            suggestedAction: isBullish ? `Buy NIFTY 24900 CE near FVG Retest` : `Buy NIFTY 24800 PE near Order Block Retest`,
+            suggestedAction: isBullish ? `Buy NIFTY ${strikeRound} CE near FVG Retest` : `Buy NIFTY ${strikeRound} PE near Order Block Retest`,
             source: 'LOCAL_CORE',
             signalStrength: 'HIGH',
             keyFactors: [
@@ -172,8 +173,8 @@ export class AILogic {
                 '0.5 Equilibrium Midpoint Target Primed'
             ],
             scalpSetup: {
-                entry: `₹${(ltp + (isBullish ? 5 : -5)).toFixed(1)}`,
-                sl: `₹${(ltp + (isBullish ? -30 : 30)).toFixed(1)}`,
+                entry: `₹${(ltp + (isBullish ? 4 : -4)).toFixed(1)}`,
+                sl: `₹${(ltp + (isBullish ? -25 : 25)).toFixed(1)}`,
                 target: `₹${(ltp + (isBullish ? 45 : -45)).toFixed(1)}`,
                 logic: 'Ayub Rana CRT 3-Candle Retest into 5M FVG'
             }
