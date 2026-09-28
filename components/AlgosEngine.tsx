@@ -11,6 +11,7 @@ import { brokerRegistry, OFFICIAL_REDIRECT_URI } from '../services/brokerRegistr
 import { BrokerId, WebSocketState } from '../types';
 import { yahooFinanceService, YahooQuote } from '../services/yahooFinanceService';
 import { ClaudeService, ClaudeAction } from '../services/claudeService';
+import { marketHoursService, MarketHoursStatus } from '../services/marketHoursService';
 
 export interface AlgoStrategy {
   id: string;
@@ -217,6 +218,7 @@ export const AlgosEngine: React.FC = () => {
   const [masterAlgoRunning, setMasterAlgoRunning] = useState<boolean>(true);
   const [executionMode, setExecutionMode] = useState<'PAPER' | 'LIVE'>('LIVE');
   const [selectedBroker, setSelectedBroker] = useState<BrokerId>(() => brokerRegistry.getActiveBrokerId());
+  const selectedBrokerMeta = useMemo(() => brokerRegistry.getBrokerMetadata(selectedBroker), [selectedBroker]);
   
   // Risk Limits
   const [maxDailyLoss, setMaxDailyLoss] = useState<number>(5000);
@@ -256,6 +258,7 @@ export const AlgosEngine: React.FC = () => {
   const [brokerLatency, setBrokerLatency] = useState<number>(24);
   const [copiedRedirect, setCopiedRedirect] = useState<boolean>(false);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [marketHours, setMarketHours] = useState<MarketHoursStatus>(() => marketHoursService.getStatus());
 
   // Terminal Logs
   const [logs, setLogs] = useState<AlgoLog[]>([
@@ -284,7 +287,15 @@ export const AlgosEngine: React.FC = () => {
       setYahooQuotes({ ...q });
       setLastYahooSync(new Date().toLocaleTimeString('en-US', { hour12: false }));
     });
-    return () => unsub();
+
+    const unsubHours = marketHoursService.subscribe((status) => {
+      setMarketHours(status);
+    });
+
+    return () => {
+      unsub();
+      unsubHours();
+    };
   }, []);
 
   const fetchYahooQuotes = async () => {
@@ -316,6 +327,14 @@ export const AlgosEngine: React.FC = () => {
       // Update open order prices in real time with dynamic market ticks
       setOrders(prev => prev.map(ord => {
         if (ord.status !== 'OPEN') return ord;
+
+        // Auto Square-Off at exact market close / 03:15-03:30 PM window
+        const currentMH = marketHoursService.getStatus();
+        if (currentMH.autoSquareOffTriggered) {
+          addLog('RISK', `⏰ NSE 03:15 PM AUTO SQUARE-OFF TRIGGERED: Closing ${ord.symbol} at ₹${ord.currentPrice.toFixed(2)} due to market closing window.`);
+          return { ...ord, status: 'SQUARED_OFF' };
+        }
+
         const delta = (Math.random() - 0.47) * 1.5;
         const newPrice = Math.max(ord.entryPrice * 0.7, Number((ord.currentPrice + delta).toFixed(2)));
         const pnlDelta = (newPrice - ord.entryPrice) * ord.quantity * (ord.side === 'BUY' ? 1 : -1);
@@ -337,8 +356,9 @@ export const AlgosEngine: React.FC = () => {
         };
       }));
 
-      // Autonomous Algorithmic Signal Execution: Every ~15 seconds, if master algo running and slots open
-      if (masterAlgoRunning && tickCounter % 15 === 0) {
+      // Autonomous Algorithmic Signal Execution: Every ~15 seconds, if master algo running and market is open
+      const currentMH = marketHoursService.getStatus();
+      if (masterAlgoRunning && currentMH.canExecuteLiveOrders && tickCounter % 15 === 0) {
         setOrders(currOrders => {
           const openCount = currOrders.filter(o => o.status === 'OPEN').length;
           if (openCount >= maxOpenPositions) return currOrders;
@@ -732,24 +752,32 @@ export const AlgosEngine: React.FC = () => {
         </div>
       </div>
 
-      {/* YAHOO FINANCE REAL-TIME MARKET DATA TAPE */}
+      {/* YAHOO FINANCE & CONNECTED BROKER REAL-TIME MARKET DATA TAPE */}
       <div className="hud-panel p-4 rounded-2xl overflow-hidden relative">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/10">
-          <div className="flex items-center gap-2 font-mono text-[11px]">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-bold text-emerald-400 flex items-center gap-1.5 uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+            <div className={`w-2.5 h-2.5 rounded-full ${marketHours.isOpen ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`} />
+            <span className={`font-black flex items-center gap-1.5 uppercase tracking-wider ${marketHours.isOpen ? 'text-emerald-400' : 'text-slate-400'}`}>
               <Globe size={13} />
-              Yahoo Finance Live Market Data Feed
+              {selectedBrokerMeta.name} & Exchange Feed
             </span>
             <span className="text-[10px] text-slate-400">
-              (Sync: {lastYahooSync})
+              (IST: {marketHours.istTimeString})
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>AUTOMATIC LIVE FEED · 1s TICK</span>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Market Clock & Status Badge */}
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider border ${marketHours.badgeColor}`}>
+              <Clock size={12} />
+              <span>{marketHours.statusText}</span>
+              <span className="opacity-75">· {marketHours.timeRemainingText}</span>
+            </div>
+
+            {/* Live Broker Connection Badge */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+              <span>ROUTER: {selectedBroker}</span>
             </div>
           </div>
         </div>

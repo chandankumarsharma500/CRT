@@ -159,6 +159,38 @@ export const yahooFinanceService = {
   },
 
   /**
+   * Directly inject or override quote data from active connected broker feed
+   */
+  injectBrokerQuote(id: string, quote: Partial<YahooQuote> & { price: number; name?: string }) {
+    const existing = quoteCache[id];
+    const prev = existing ? existing.price : quote.price;
+    const price = quote.price;
+    const change = quote.change !== undefined ? quote.change : Number((price - prev).toFixed(2));
+    const changePercent = quote.changePercent !== undefined ? quote.changePercent : (prev > 0 ? Number(((change / prev) * 100).toFixed(2)) : 0);
+
+    quoteCache[id] = {
+      id,
+      symbol: existing?.symbol || id.toUpperCase(),
+      name: quote.name || existing?.name || id.toUpperCase(),
+      price: Number(price.toFixed(2)),
+      change: Number(change.toFixed(2)),
+      changePercent: Number(changePercent.toFixed(2)),
+      high: quote.high || Math.max(existing?.high || price, price),
+      low: quote.low || Math.min(existing?.low || price, price),
+      open: quote.open || existing?.open || price,
+      previousClose: quote.previousClose || existing?.previousClose || prev,
+      volume: quote.volume || existing?.volume || 1000000,
+      timestamp: Date.now(),
+      lastUpdated: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      tickDirection: change >= 0 ? 'UP' : 'DOWN',
+      source: quote.source || 'BROKER_FEED'
+    };
+
+    const snap = { ...quoteCache };
+    listeners.forEach(fn => { try { fn(snap); } catch (_) {} });
+  },
+
+  /**
    * Subscribe to real-time quote updates (called immediately + on every live tick)
    */
   subscribe(fn: Listener): () => void {

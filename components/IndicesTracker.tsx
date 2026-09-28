@@ -117,6 +117,10 @@ export const IndicesTracker: React.FC<{ darkMode?: boolean }> = ({ darkMode }) =
                   <span className="text-[11px] font-mono text-slate-400">
                     {data.definition.name}
                   </span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    <span className="text-[9px] font-mono text-cyan-400 font-semibold">{data.source || 'Connected Broker Feed'}</span>
+                  </div>
                 </div>
               </div>
               

@@ -4,6 +4,7 @@ import { upstoxService } from './upstoxService';
 import { angelOneService } from './angelOneService';
 import { mobileBackendService } from './mobileBackendService';
 import { brokerRegistry } from './brokerRegistry';
+import { yahooFinanceService } from './yahooFinanceService';
 import { 
   BrokerId, 
   OrderRequest, 
@@ -14,6 +15,30 @@ import {
   WebSocketState, 
   BrokerClosingPrice 
 } from '../types';
+
+// Forward connected broker quotes into global quote streamer
+const wireBrokerFeedToGlobalStream = (service: UnifiedBrokerService) => {
+  service.subscribe((quotes) => {
+    Object.entries(quotes).forEach(([id, q]) => {
+      if (q && q.lastPrice > 0) {
+        yahooFinanceService.injectBrokerQuote(id, {
+          price: q.lastPrice,
+          name: q.name || id.toUpperCase(),
+          change: q.change,
+          changePercent: q.percentChange,
+          source: `${service.getBrokerName()} Live Feed`
+        });
+      }
+    });
+  });
+};
+
+if (typeof window !== 'undefined') {
+  wireBrokerFeedToGlobalStream(dhanService);
+  wireBrokerFeedToGlobalStream(zerodhaService);
+  wireBrokerFeedToGlobalStream(upstoxService);
+  wireBrokerFeedToGlobalStream(angelOneService);
+}
 
 export const getBrokerService = (requestedId?: BrokerId): UnifiedBrokerService => {
   const activeId = requestedId || brokerRegistry.getActiveBrokerId();

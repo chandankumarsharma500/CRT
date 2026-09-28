@@ -20,6 +20,8 @@ import { AlgosEngine } from './components/AlgosEngine';
 import { upstoxService } from './services/upstoxService';
 import { yahooFinanceService, YahooQuote } from './services/yahooFinanceService';
 import { ClaudeService } from './services/claudeService';
+import { marketHoursService, MarketHoursStatus } from './services/marketHoursService';
+import { brokerRegistry } from './services/brokerRegistry';
 
 type View = 'algos' | 'dashboard' | 'crt' | 'indices' | 'global-pulse' | 'smart-money' | 'analyst' | 'lab' | 'backtest' | 'rules' | 'login';
 
@@ -38,6 +40,15 @@ export const App: React.FC = () => {
     const saved = localStorage.getItem('smc_theme');
     return saved ? saved === 'dark' : true;
   });
+  const [marketHours, setMarketHours] = useState<MarketHoursStatus>(() => marketHoursService.getStatus());
+  const [activeBrokerId, setActiveBrokerId] = useState(() => brokerRegistry.getActiveBrokerId());
+
+  useEffect(() => {
+    const unsubHours = marketHoursService.subscribe((status) => {
+      setMarketHours(status);
+    });
+    return () => unsubHours();
+  }, []);
 
   useEffect(() => {
     const { code } = upstoxService.checkForRedirectCode();
@@ -189,11 +200,23 @@ export const App: React.FC = () => {
           <SMCLogo size={36} showText={true} variant="header" />
         </div>
 
-        {/* Live Yahoo Finance Market Strip (Center) */}
+        {/* Live Market & Broker Strip (Center) */}
         <div className="hidden md:flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[10px] font-mono shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="font-bold text-slate-500 dark:text-slate-400">YAHOO LIVE 1s</span>
+          {/* Market Status Clock Badge */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-mono shrink-0 ${marketHours.badgeColor}`}>
+            <span className={`w-2 h-2 rounded-full ${marketHours.isOpen ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`} />
+            <span className="font-bold">{marketHours.status === 'OPEN' ? 'MARKET OPEN' : marketHours.status}</span>
+            <span className="opacity-75">· {marketHours.istTimeString}</span>
+          </div>
+
+          {/* Active Broker Indicator */}
+          <div 
+            onClick={() => setCurrentView('login')}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-indigo-500/10 border border-indigo-500/25 text-[10px] font-mono text-indigo-400 hover:border-indigo-400/50 cursor-pointer shrink-0 transition-all"
+            title="Click to view or switch connected broker"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="font-extrabold">{brokerRegistry.getBrokerMetadata(activeBrokerId)?.name || 'BROKER'}</span>
           </div>
 
           {primaryTickers.map((key) => {
