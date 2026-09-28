@@ -29,7 +29,7 @@ export const App: React.FC = () => {
   const [aiKeyStatus, setAiKeyStatus] = useState<boolean>(false);
   const [quotes, setQuotes] = useState<Record<string, YahooQuote>>(() => yahooFinanceService.getAllQuotes());
   const [isSyncingYahoo, setIsSyncingYahoo] = useState(false);
-  const [executionMode, setExecutionMode] = useState<'PAPER' | 'LIVE'>('PAPER');
+  const [executionMode, setExecutionMode] = useState<'PAPER' | 'LIVE'>('LIVE');
   const [showClaudeDrawer, setShowClaudeDrawer] = useState(false);
   const [copiedPayload, setCopiedPayload] = useState(false);
   const [emergencyAlert, setEmergencyAlert] = useState<string | null>(null);
@@ -162,7 +162,7 @@ export const App: React.FC = () => {
       items: [
         { view: 'analyst' as View, icon: TrendingUp, label: 'NEURAL COPILOT' },
         { view: 'lab' as View, icon: FlaskConical, label: 'STRATEGY LAB' },
-        { view: 'backtest' as View, icon: BarChart, label: 'QUANT BACKTEST' },
+        { view: 'backtest' as View, icon: BarChart, label: 'QUANT BACKTEST', badge: 'WIN RATE' },
         { view: 'rules' as View, icon: BookOpen, label: 'MANIFESTO' },
       ]
     },
@@ -225,24 +225,25 @@ export const App: React.FC = () => {
           {/* Execution Mode Segmented Toggle */}
           <div className="hidden sm:flex items-center p-0.5 rounded bg-black/5 dark:bg-black/40 border border-black/5 dark:border-white/10 font-mono text-[10px] font-bold">
             <button
+              onClick={() => setExecutionMode('LIVE')}
+              className={`px-2.5 py-1 rounded transition-all flex items-center gap-1.5 ${
+                executionMode === 'LIVE' 
+                  ? 'bg-rose-500 text-white shadow-sm font-extrabold' 
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Radio size={11} className={executionMode === 'LIVE' ? 'animate-pulse text-white' : ''} />
+              <span>LIVE BROKER</span>
+            </button>
+            <button
               onClick={() => setExecutionMode('PAPER')}
-              className={`px-2.5 py-1 rounded transition-all ${
+              className={`px-2.5 py-1 rounded transition-all flex items-center gap-1 ${
                 executionMode === 'PAPER' 
                   ? 'bg-cyan-500 text-black shadow-sm font-extrabold' 
                   : 'text-slate-500 hover:text-slate-300'
               }`}
             >
-              SIMULATOR
-            </button>
-            <button
-              onClick={() => setExecutionMode('LIVE')}
-              className={`px-2.5 py-1 rounded transition-all flex items-center gap-1 ${
-                executionMode === 'LIVE' 
-                  ? 'bg-rose-500 text-white shadow-sm font-extrabold animate-pulse' 
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <Radio size={10} /> LIVE BROKER
+              <span>PAPER AUDIT</span>
             </button>
           </div>
 

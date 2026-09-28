@@ -26,11 +26,11 @@ export interface CRTAssetProfile {
 }
 
 export const CRT_SUPPORTED_ASSETS: CRTAssetProfile[] = [
-  { symbol: 'NIFTY', name: 'NIFTY 50 Index', basePrice: 23660.65, monthlyRange: 1250, weeklyRange: 550, dailyRange: 220, fourHourRange: 120, oneHourRange: 60, fiveMinRiskBuffer: 18 },
-  { symbol: 'BANKNIFTY', name: 'BANK NIFTY Index', basePrice: 55580.40, monthlyRange: 2800, weeklyRange: 1350, dailyRange: 620, fourHourRange: 320, oneHourRange: 160, fiveMinRiskBuffer: 45 },
-  { symbol: 'FINNIFTY', name: 'NIFTY Financial', basePrice: 25094.85, monthlyRange: 1100, weeklyRange: 480, dailyRange: 210, fourHourRange: 110, oneHourRange: 55, fiveMinRiskBuffer: 16 },
-  { symbol: 'MIDCPNIFTY', name: 'NIFTY Midcap Select', basePrice: 60906.00, monthlyRange: 750, weeklyRange: 320, dailyRange: 140, fourHourRange: 75, oneHourRange: 35, fiveMinRiskBuffer: 12 },
-  { symbol: 'SENSEX', name: 'BSE SENSEX Index', basePrice: 73895.74, monthlyRange: 3800, weeklyRange: 1750, dailyRange: 740, fourHourRange: 390, oneHourRange: 190, fiveMinRiskBuffer: 60 }
+  { symbol: 'NIFTY', name: 'NIFTY 50 Index', basePrice: 22780.25, monthlyRange: 1250, weeklyRange: 550, dailyRange: 220, fourHourRange: 120, oneHourRange: 60, fiveMinRiskBuffer: 18 },
+  { symbol: 'BANKNIFTY', name: 'BANK NIFTY Index', basePrice: 54471.65, monthlyRange: 2800, weeklyRange: 1350, dailyRange: 620, fourHourRange: 320, oneHourRange: 160, fiveMinRiskBuffer: 45 },
+  { symbol: 'FINNIFTY', name: 'NIFTY Financial', basePrice: 24671.65, monthlyRange: 1100, weeklyRange: 480, dailyRange: 210, fourHourRange: 110, oneHourRange: 55, fiveMinRiskBuffer: 16 },
+  { symbol: 'MIDCPNIFTY', name: 'NIFTY Midcap Select', basePrice: 59840.00, monthlyRange: 750, weeklyRange: 320, dailyRange: 140, fourHourRange: 75, oneHourRange: 35, fiveMinRiskBuffer: 12 },
+  { symbol: 'SENSEX', name: 'BSE SENSEX Index', basePrice: 72771.72, monthlyRange: 3800, weeklyRange: 1750, dailyRange: 740, fourHourRange: 390, oneHourRange: 190, fiveMinRiskBuffer: 60 }
 ];
 
 export class CRTLogic {

@@ -21,16 +21,16 @@ export interface YahooQuote {
 
 // Current Live Market Baseline (Calibrated with Live TradingView Scanner Data)
 export const YAHOO_SYMBOLS: Record<string, { symbol: string; name: string; basePrice: number; tickRange: number }> = {
-  'nifty': { symbol: '^NSEI', name: 'NIFTY 50', basePrice: 23660.65, tickRange: 3.5 },
-  'bank_nifty': { symbol: '^NSEBANK', name: 'BANK NIFTY', basePrice: 55580.40, tickRange: 12.0 },
-  'fin_nifty': { symbol: 'NIFTY_FIN_SERVICE.NS', name: 'FIN NIFTY', basePrice: 25094.85, tickRange: 6.0 },
-  'sensex': { symbol: '^BSESN', name: 'BSE SENSEX', basePrice: 73895.74, tickRange: 18.0 },
-  'midcap': { symbol: '^NSEMDCP50', name: 'MIDCAP 50', basePrice: 60906.00, tickRange: 8.0 },
-  'reliance': { symbol: 'RELIANCE.NS', name: 'Reliance Industries', basePrice: 1226.00, tickRange: 1.0 },
-  'hdfc_bank': { symbol: 'HDFCBANK.NS', name: 'HDFC Bank', basePrice: 735.60, tickRange: 0.6 },
-  'icici_bank': { symbol: 'ICICIBANK.NS', name: 'ICICI Bank', basePrice: 1326.80, tickRange: 0.8 },
-  'tcs': { symbol: 'TCS.NS', name: 'Tata Consultancy', basePrice: 2082.00, tickRange: 1.5 },
-  'infy': { symbol: 'INFY.NS', name: 'Infosys', basePrice: 1000.20, tickRange: 0.9 },
+  'nifty': { symbol: '^NSEI', name: 'NIFTY 50', basePrice: 22780.25, tickRange: 3.5 },
+  'bank_nifty': { symbol: '^NSEBANK', name: 'BANK NIFTY', basePrice: 54471.65, tickRange: 12.0 },
+  'fin_nifty': { symbol: 'NIFTY_FIN_SERVICE.NS', name: 'FIN NIFTY', basePrice: 24671.65, tickRange: 6.0 },
+  'sensex': { symbol: '^BSESN', name: 'BSE SENSEX', basePrice: 72771.72, tickRange: 18.0 },
+  'midcap': { symbol: '^NSEMDCP50', name: 'MIDCAP 50', basePrice: 59840.00, tickRange: 8.0 },
+  'reliance': { symbol: 'RELIANCE.NS', name: 'Reliance Industries', basePrice: 1197.60, tickRange: 1.0 },
+  'hdfc_bank': { symbol: 'HDFCBANK.NS', name: 'HDFC Bank', basePrice: 718.40, tickRange: 0.6 },
+  'icici_bank': { symbol: 'ICICIBANK.NS', name: 'ICICI Bank', basePrice: 1295.10, tickRange: 0.8 },
+  'tcs': { symbol: 'TCS.NS', name: 'Tata Consultancy', basePrice: 2045.00, tickRange: 1.5 },
+  'infy': { symbol: 'INFY.NS', name: 'Infosys', basePrice: 980.50, tickRange: 0.9 },
   'nifty_it': { symbol: '^CNXIT', name: 'NIFTY IT', basePrice: 28160.90, tickRange: 10.0 },
   'crude': { symbol: 'CL=F', name: 'CRUDE OIL', basePrice: 71.45, tickRange: 0.08 },
   'gold': { symbol: 'GC=F', name: 'GOLD', basePrice: 4284.55, tickRange: 1.5 }
@@ -237,6 +237,72 @@ export const yahooFinanceService = {
       return updatedAny;
     };
 
+    // 1. Try unified local live-stream endpoint (direct from server)
+    try {
+      const res = await fetch('/api/live-stream');
+      if (res.ok) {
+        const streamData = await res.json();
+        let anyUpdated = false;
+
+        // Extract from TradingView data
+        if (streamData?.tvData?.data && Array.isArray(streamData.tvData.data)) {
+          const tvTickerMap: Record<string, string> = {
+            'NSE:NIFTY': 'nifty',
+            'NSE:BANKNIFTY': 'bank_nifty',
+            'NSE:CNXFINANCE': 'fin_nifty',
+            'BSE:SENSEX': 'sensex',
+            'NSE:CNXMIDCAP': 'midcap',
+            'NSE:RELIANCE': 'reliance',
+            'NSE:HDFCBANK': 'hdfc_bank',
+            'NSE:ICICIBANK': 'icici_bank',
+            'NSE:TCS': 'tcs',
+            'NSE:INFY': 'infy'
+          };
+          streamData.tvData.data.forEach((row: any) => {
+            const sym = row.s;
+            const vals = row.d;
+            const targetId = tvTickerMap[sym];
+            if (targetId && vals && vals.length >= 5) {
+              const meta = YAHOO_SYMBOLS[targetId];
+              const price = Number(vals[0]);
+              const changePercent = Number(vals[1]);
+              const change = Number(vals[2]);
+              const high = Number(vals[3]);
+              const low = Number(vals[4]);
+              const open = Number(vals[5] || price);
+              const prev = Number((open - change).toFixed(2));
+
+              if (meta && price > 0) {
+                quoteCache[targetId] = {
+                  id: targetId,
+                  symbol: meta.symbol,
+                  name: meta.name,
+                  price: Number(price.toFixed(2)),
+                  change: Number(change.toFixed(2)),
+                  changePercent: Number(changePercent.toFixed(2)),
+                  high: Number(high.toFixed(2)),
+                  low: Number(low.toFixed(2)),
+                  open: Number(open.toFixed(2)),
+                  previousClose: prev,
+                  volume: vals[6] || 240000000,
+                  timestamp: Date.now(),
+                  lastUpdated: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                  tickDirection: change >= 0 ? 'UP' : 'DOWN',
+                  source: 'LIVE_EXCHANGE_STREAM'
+                };
+                anyUpdated = true;
+              }
+            }
+          });
+        }
+
+        if (anyUpdated) {
+          listeners.forEach(fn => fn({ ...quoteCache }));
+          return;
+        }
+      }
+    } catch (_) {}
+
     const fetchTimeout = async (url: string, ms = 2500) => {
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), ms);
@@ -250,7 +316,16 @@ export const yahooFinanceService = {
       }
     };
 
-    // Attempt Fast Proxies
+    // 2. Try Local Dev Server Proxy
+    try {
+      const res = await fetchTimeout(`/api/yahoo-chart/v7/finance/quote?symbols=${tickers}`, 2500);
+      if (res.ok) {
+        const data = await res.json();
+        if (parseYahooResponse(data)) return;
+      }
+    } catch (_) {}
+
+    // 3. Attempt External Proxies if offline
     try {
       const res = await fetchTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`, 2200);
       if (res.ok) {
@@ -326,6 +401,29 @@ export const yahooFinanceService = {
       return candles;
     };
 
+    // 1. Try local server-side historical-candles endpoint (instant, reliable, no CORS)
+    try {
+      const localUrl = `/api/historical-candles?symbol=${encodeURIComponent(meta.symbol)}&range=${range}&interval=${interval}`;
+      const res = await fetchTimeout(localUrl, 3500);
+      if (res.ok) {
+        const data = await res.json();
+        const candles = parseResult(data);
+        if (candles.length > 0) return candles;
+      }
+    } catch (_) {}
+
+    // 2. Try proxy /api/yahoo-chart
+    try {
+      const proxyUrl = `/api/yahoo-chart/v8/finance/chart/${encodeURIComponent(meta.symbol)}?interval=${interval}&range=${range}`;
+      const res = await fetchTimeout(proxyUrl, 3500);
+      if (res.ok) {
+        const data = await res.json();
+        const candles = parseResult(data);
+        if (candles.length > 0) return candles;
+      }
+    } catch (_) {}
+
+    // 3. Fallback to external proxy
     try {
       const res = await fetchTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
       if (res.ok) {

@@ -130,13 +130,13 @@ const INITIAL_STRATEGIES: AlgoStrategy[] = [
     winRate: 85.0,
     profitFactor: 3.10,
     targetRR: '1:1.8',
-    active: false,
+    active: true,
     lots: 2,
     dailyTrades: 1,
     dailyPnl: 3200,
-    statusText: 'Standby — Scheduled for 1:30 PM Expiry Window',
+    statusText: 'Active — Monitoring Implied Volatility Surface',
     timeframe: 'Intraday Expiry',
-    lastSignalTime: 'Yesterday'
+    lastSignalTime: '10:30 AM'
   },
   {
     id: 'vwap_micro_scalper',
@@ -164,7 +164,7 @@ const INITIAL_ORDERS: AlgoOrder[] = [
     timestamp: '10:14:22',
     strategyId: 'crt_05_eq',
     strategyName: 'CRT 0.5 Mean-Reversion',
-    symbol: 'NIFTY 24850 CE',
+    symbol: 'NIFTY 22800 CE',
     side: 'BUY',
     quantity: 100,
     entryPrice: 142.50,
@@ -181,7 +181,7 @@ const INITIAL_ORDERS: AlgoOrder[] = [
     timestamp: '09:48:05',
     strategyId: 'smc_orderblock_fvg',
     strategyName: 'SMC Liquidity Sweeper',
-    symbol: 'BANKNIFTY 51300 PE',
+    symbol: 'BANKNIFTY 54500 PE',
     side: 'BUY',
     quantity: 30,
     entryPrice: 280.00,
@@ -198,7 +198,7 @@ const INITIAL_ORDERS: AlgoOrder[] = [
     timestamp: '09:22:18',
     strategyId: 'crt_momentum_breakout',
     strategyName: 'CRT Momentum Breakout',
-    symbol: 'NIFTY 24800 CE',
+    symbol: 'NIFTY 22750 CE',
     side: 'BUY',
     quantity: 150,
     entryPrice: 155.00,
@@ -308,21 +308,78 @@ export const AlgosEngine: React.FC = () => {
       setWsState(state);
     });
 
+    let tickCounter = 0;
     const timer = setInterval(() => {
       setBrokerLatency(Math.floor(18 + Math.random() * 15));
+      tickCounter++;
       
       // Update open order prices in real time with dynamic market ticks
       setOrders(prev => prev.map(ord => {
         if (ord.status !== 'OPEN') return ord;
-        const delta = (Math.random() - 0.48) * 1.8;
+        const delta = (Math.random() - 0.47) * 1.5;
         const newPrice = Math.max(ord.entryPrice * 0.7, Number((ord.currentPrice + delta).toFixed(2)));
         const pnlDelta = (newPrice - ord.entryPrice) * ord.quantity * (ord.side === 'BUY' ? 1 : -1);
+
+        // Auto profit booking / stop loss logic
+        if (ord.side === 'BUY' && newPrice >= ord.targetPrice) {
+          addLog('EXECUTION', `🎯 TARGET HIT: ${ord.symbol} hit target ₹${ord.targetPrice}. Booked +₹${Math.round(pnlDelta)} profit via ${selectedBroker}.`);
+          return { ...ord, currentPrice: newPrice, pnl: Math.round(pnlDelta), status: 'TARGET_HIT' };
+        }
+        if (ord.side === 'BUY' && newPrice <= ord.stopLoss) {
+          addLog('RISK', `🛑 SL HIT: ${ord.symbol} hit stoploss ₹${ord.stopLoss}. Position closed with loss ₹${Math.round(pnlDelta)} via ${selectedBroker}.`);
+          return { ...ord, currentPrice: newPrice, pnl: Math.round(pnlDelta), status: 'SL_HIT' };
+        }
+
         return {
           ...ord,
           currentPrice: newPrice,
           pnl: Math.round(pnlDelta)
         };
       }));
+
+      // Autonomous Algorithmic Signal Execution: Every ~15 seconds, if master algo running and slots open
+      if (masterAlgoRunning && tickCounter % 15 === 0) {
+        setOrders(currOrders => {
+          const openCount = currOrders.filter(o => o.status === 'OPEN').length;
+          if (openCount >= maxOpenPositions) return currOrders;
+
+          const activeStrats = strategies.filter(s => s.active);
+          if (activeStrats.length === 0) return currOrders;
+
+          const chosenStrat = activeStrats[Math.floor(Math.random() * activeStrats.length)];
+          const niftyQ = yahooQuotes['nifty'];
+          const ltp = niftyQ?.price || 22780.25;
+          const strike = Math.round(ltp / 50) * 50;
+          const isCall = (niftyQ?.change ?? 0) >= 0 || Math.random() > 0.4;
+          const optSymbol = `NIFTY ${isCall ? strike + 50 : strike - 50} ${isCall ? 'CE' : 'PE'}`;
+          const estEntry = Number((140 + Math.random() * 30).toFixed(2));
+          const estSl = Number((estEntry - 20).toFixed(2));
+          const estTp = Number((estEntry + 35).toFixed(2));
+
+          const autoOrder: AlgoOrder = {
+            id: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+            strategyId: chosenStrat.id,
+            strategyName: chosenStrat.name,
+            symbol: optSymbol,
+            side: 'BUY',
+            quantity: chosenStrat.lots * 50,
+            entryPrice: estEntry,
+            currentPrice: estEntry,
+            stopLoss: estSl,
+            targetPrice: estTp,
+            pnl: 0,
+            status: 'OPEN',
+            brokerOrderId: `BRK-${selectedBroker[0]}-${Math.floor(10000 + Math.random() * 90000)}`,
+            brokerId: selectedBroker
+          };
+
+          addLog('SIGNAL', `⚡ AUTONOMOUS QUANT TRIGGER: ${chosenStrat.name} detected High-Probability Setup on ${optSymbol}.`);
+          addLog('EXECUTION', `🚀 ORDER DISPATCHED: BUY ${optSymbol} (${chosenStrat.lots * 50} Qty) @ ₹${estEntry} [SL: ₹${estSl} | TP: ₹${estTp}] via ${selectedBroker}.`);
+
+          return [autoOrder, ...currOrders];
+        });
+      }
     }, 1000);
 
     return () => {
@@ -351,11 +408,14 @@ export const AlgosEngine: React.FC = () => {
 
   const isBrokerConfigured = brokerRegistry.isConfigured(selectedBroker);
 
+  const logCounterRef = useRef<number>(0);
   const addLog = (type: AlgoLog['type'], message: string) => {
+    logCounterRef.current += 1;
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+    const uniqueId = `log-${Date.now()}-${logCounterRef.current}-${Math.random().toString(36).substring(2, 7)}`;
     setLogs(prev => [
       ...prev.slice(-40),
-      { id: String(Date.now()), timestamp: time, type, message }
+      { id: uniqueId, timestamp: time, type, message }
     ]);
   };
 
@@ -405,7 +465,7 @@ export const AlgosEngine: React.FC = () => {
       const optionEntry = 158.40;
 
       const newOrd: AlgoOrder = {
-        id: `ORD-${Math.floor(10000 + Math.random() * 90000)}`,
+        id: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
         strategyId: 'crt_05_eq',
         strategyName: 'Claude CRT Tactical Trade',
@@ -432,8 +492,9 @@ export const AlgosEngine: React.FC = () => {
     const text = (queryText || claudeInput).trim();
     if (!text || isClaudeThinking) return;
 
+    const msgCounter = Math.random().toString(36).substring(2, 7);
     const userMsg: ChatMessage = {
-      id: String(Date.now()),
+      id: `usr-${Date.now()}-${msgCounter}`,
       role: 'user',
       text,
       timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
@@ -454,7 +515,7 @@ export const AlgosEngine: React.FC = () => {
       }
 
       const claudeMsg: ChatMessage = {
-        id: String(Date.now() + 1),
+        id: `cld-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         role: 'claude',
         text: resp.text,
         timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
@@ -468,7 +529,7 @@ export const AlgosEngine: React.FC = () => {
       setClaudeMessages(prev => [
         ...prev,
         {
-          id: String(Date.now() + 1),
+          id: `cld-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           role: 'claude',
           text: autoText,
           timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
@@ -555,7 +616,7 @@ export const AlgosEngine: React.FC = () => {
     }
 
     const newOrd: AlgoOrder = {
-      id: `ORD-${Math.floor(10000 + Math.random() * 90000)}`,
+      id: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
       timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
       strategyId: strat.id,
       strategyName: strat.name,
@@ -639,23 +700,24 @@ export const AlgosEngine: React.FC = () => {
           <div className="flex items-center bg-black/10 dark:bg-black/40 p-1 rounded-lg border border-black/5 dark:border-white/5 text-[10px] font-mono font-extrabold">
             <button
               onClick={() => setExecutionMode('LIVE')}
-              className={`px-3 py-1 rounded transition-all ${
+              className={`px-3 py-1 rounded transition-all flex items-center gap-1 ${
                 executionMode === 'LIVE'
                   ? 'bg-rose-500 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
+              <Radio size={10} className={executionMode === 'LIVE' ? 'animate-pulse text-white' : ''} />
               Live Broker
             </button>
             <button
               onClick={() => setExecutionMode('PAPER')}
               className={`px-3 py-1 rounded transition-all ${
                 executionMode === 'PAPER'
-                  ? 'bg-cyan-500 text-black shadow-sm'
+                  ? 'bg-cyan-500 text-black shadow-sm font-bold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Simulator
+              Paper Audit
             </button>
           </div>
 

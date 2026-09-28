@@ -164,8 +164,8 @@ Please analyze current market ticks, scan for optimal Ayub Rana CRT liquidity sw
    */
   public static generateAutonomousCRTSolution(query: string, quote?: YahooQuote): string {
     const q = query.toLowerCase();
-    const ltp = quote?.price || 23660.65;
-    const change = quote?.change || 77.40;
+    const ltp = quote?.price || 22780.25;
+    const change = quote?.change || -360.25;
     const isBullish = change >= 0;
 
     // HTF Range Boundary Calibrations (Daily / H4)

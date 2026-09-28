@@ -15,16 +15,16 @@ export interface TradingViewQuote {
 }
 
 export const TV_SYMBOL_MAP: Record<string, { tvTicker: string; name: string; defaultBasePrice: number }> = {
-  'nifty': { tvTicker: 'NSE:NIFTY', name: 'NIFTY 50', defaultBasePrice: 23660.65 },
-  'bank_nifty': { tvTicker: 'NSE:BANKNIFTY', name: 'BANK NIFTY', defaultBasePrice: 55580.40 },
-  'fin_nifty': { tvTicker: 'NSE:CNXFINANCE', name: 'FIN NIFTY', defaultBasePrice: 25094.85 },
-  'sensex': { tvTicker: 'BSE:SENSEX', name: 'BSE SENSEX', defaultBasePrice: 73895.74 },
-  'midcap': { tvTicker: 'NSE:CNXMIDCAP', name: 'MIDCAP 50', defaultBasePrice: 60906.00 },
-  'reliance': { tvTicker: 'NSE:RELIANCE', name: 'Reliance Industries', defaultBasePrice: 1226.00 },
-  'hdfc_bank': { tvTicker: 'NSE:HDFCBANK', name: 'HDFC Bank', defaultBasePrice: 735.60 },
-  'icici_bank': { tvTicker: 'NSE:ICICIBANK', name: 'ICICI Bank', defaultBasePrice: 1326.80 },
-  'tcs': { tvTicker: 'NSE:TCS', name: 'Tata Consultancy', defaultBasePrice: 2082.00 },
-  'infy': { tvTicker: 'NSE:INFY', name: 'Infosys', defaultBasePrice: 1000.20 },
+  'nifty': { tvTicker: 'NSE:NIFTY', name: 'NIFTY 50', defaultBasePrice: 22780.25 },
+  'bank_nifty': { tvTicker: 'NSE:BANKNIFTY', name: 'BANK NIFTY', defaultBasePrice: 54471.65 },
+  'fin_nifty': { tvTicker: 'NSE:CNXFINANCE', name: 'FIN NIFTY', defaultBasePrice: 24671.65 },
+  'sensex': { tvTicker: 'BSE:SENSEX', name: 'BSE SENSEX', defaultBasePrice: 72771.72 },
+  'midcap': { tvTicker: 'NSE:CNXMIDCAP', name: 'MIDCAP 50', defaultBasePrice: 59840.00 },
+  'reliance': { tvTicker: 'NSE:RELIANCE', name: 'Reliance Industries', defaultBasePrice: 1197.60 },
+  'hdfc_bank': { tvTicker: 'NSE:HDFCBANK', name: 'HDFC Bank', defaultBasePrice: 718.40 },
+  'icici_bank': { tvTicker: 'NSE:ICICIBANK', name: 'ICICI Bank', defaultBasePrice: 1295.10 },
+  'tcs': { tvTicker: 'NSE:TCS', name: 'Tata Consultancy', defaultBasePrice: 2045.00 },
+  'infy': { tvTicker: 'NSE:INFY', name: 'Infosys', defaultBasePrice: 980.50 },
   'crude': { tvTicker: 'TVC:USOIL', name: 'CRUDE OIL', defaultBasePrice: 71.45 },
   'gold': { tvTicker: 'TVC:GOLD', name: 'GOLD', defaultBasePrice: 4284.55 }
 };
@@ -165,16 +165,59 @@ export const tradingViewService = {
       return anyUpdated;
     };
 
-    // 1. Try Direct TradingView API (CORS enabled)
+    // 1. Try unified local live-stream endpoint (server-side fetched, CORS-free)
     try {
-      const res = await fetch('https://scanner.tradingview.com/india/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyPayload
-      });
+      const res = await fetch('/api/live-stream');
       if (res.ok) {
-        const data = await res.json();
-        if (parseResponse(data)) {
+        const streamData = await res.json();
+        let updated = false;
+
+        // Process TradingView live scanner data
+        if (streamData.tvData && parseResponse(streamData.tvData)) {
+          updated = true;
+        }
+
+        // Process Yahoo Finance data if available
+        if (Array.isArray(streamData.yahooData)) {
+          const yahooMap: Record<string, string> = {
+            '^NSEI': 'nifty',
+            '^NSEBANK': 'bank_nifty',
+            '^BSESN': 'sensex'
+          };
+          streamData.yahooData.forEach((yd: any) => {
+            const meta = yd?.chart?.result?.[0]?.meta;
+            if (meta && meta.symbol && meta.regularMarketPrice > 0) {
+              const symKey = yahooMap[meta.symbol];
+              if (symKey && (!updated || !tvQuoteCache[symKey])) {
+                const confMeta = TV_SYMBOL_MAP[symKey];
+                if (confMeta) {
+                  const price = Number(meta.regularMarketPrice.toFixed(2));
+                  const prev = Number((meta.chartPreviousClose || price).toFixed(2));
+                  const change = Number((meta.regularMarketChange ?? (price - prev)).toFixed(2));
+                  const changePercent = Number((meta.regularMarketChangePercent ?? ((change / prev) * 100)).toFixed(2));
+                  tvQuoteCache[symKey] = {
+                    id: symKey,
+                    symbol: confMeta.tvTicker,
+                    name: confMeta.name,
+                    price,
+                    change,
+                    changePercent,
+                    high: Number((meta.regularMarketDayHigh || price).toFixed(2)),
+                    low: Number((meta.regularMarketDayLow || price).toFixed(2)),
+                    open: Number((meta.regularMarketOpen || prev).toFixed(2)),
+                    volume: 240000000,
+                    timestamp: Date.now(),
+                    lastUpdated: new Date().toLocaleTimeString('en-US', { hour12: false }),
+                    source: 'TRADINGVIEW_SCANNER'
+                  };
+                  updated = true;
+                }
+              }
+            }
+          });
+        }
+
+        if (updated) {
           this.notify();
           return { ...tvQuoteCache };
         }
