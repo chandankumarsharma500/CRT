@@ -69,11 +69,11 @@ interface ChatMessage {
 const INITIAL_STRATEGIES: AlgoStrategy[] = [
   {
     id: 'crt_05_eq',
-    name: 'CRT 0.5 Equilibrium Mean-Reversion Bot',
-    code: 'ALGO-CRT-05',
+    name: '1. Ayub Rana CRT 0.5 Equilibrium (Reversal)',
+    code: 'CRT-REVERSAL',
     category: 'CRT_REVERSION',
-    description: 'Ayub Rana Candle Range Theory 15m/5m liquidity sweep detector. Enters on false-breakout rejection targeting the 0.5 Equilibrium midpoint.',
-    targetSymbols: ['NIFTY 50', 'BANK NIFTY', 'FIN NIFTY'],
+    description: 'Jab market high/low sweep karke wapas range ke andar close ho, tab 0.5 50% midpoint target ke liye reversal buy/sell trade leta hai.',
+    targetSymbols: ['NIFTY 50', 'BANK NIFTY'],
     winRate: 81.4,
     profitFactor: 2.65,
     targetRR: '1:2.5',
@@ -81,16 +81,16 @@ const INITIAL_STRATEGIES: AlgoStrategy[] = [
     lots: 2,
     dailyTrades: 4,
     dailyPnl: 8450,
-    statusText: 'Active — Monitoring 15m CRT Sweep @ 24,845',
+    statusText: 'Active — Monitoring 15m CRT Sweep',
     timeframe: '5m / 15m',
     lastSignalTime: '10:14 AM'
   },
   {
     id: 'smc_orderblock_fvg',
-    name: 'Smart Money Institutional Liquidity Sweeper',
-    code: 'ALGO-SMC-OB',
+    name: '2. SMC Order Block & FVG (Institutional)',
+    code: 'SMC-OB-SNIPER',
     category: 'SMC_INSTITUTIONAL',
-    description: 'Tracks unmitigated institutional Order Blocks (OB) & Fair Value Gaps (FVG). Dispatches sniper orders upon mitigation with tight risk boundary.',
+    description: 'Bade institutions ke unmitigated Order Blocks (OB) aur Fair Value Gap (FVG) par direct sniper limit entry execute karta hai.',
     targetSymbols: ['BANK NIFTY', 'NIFTY 50'],
     winRate: 78.8,
     profitFactor: 2.90,
@@ -99,61 +99,61 @@ const INITIAL_STRATEGIES: AlgoStrategy[] = [
     lots: 1,
     dailyTrades: 3,
     dailyPnl: 6200,
-    statusText: 'Active — 51,300 Bullish OB Zone Armed',
+    statusText: 'Active — Bullish OB Zone Armed',
     timeframe: '15m / 1H',
     lastSignalTime: '09:48 AM'
   },
   {
     id: 'crt_momentum_breakout',
-    name: 'High-Accuracy CRT Super-Breakout Momentum Bot',
-    code: 'ALGO-CRT-BRK',
+    name: '3. CRT Range Breakout Momentum',
+    code: 'CRT-BREAKOUT',
     category: 'BREAKOUT',
-    description: 'Multi-candle range compression scanner. Fires algorithmic market orders when 15m candle closes outside CRT range with 1.8x volume surge.',
-    targetSymbols: ['NIFTY 50', 'SENSEX', 'MIDCAP'],
+    description: 'Jab price CRT box ko high volume ke sath break karke bahar close karta hai, tab trend direction me entry leta hai.',
+    targetSymbols: ['NIFTY 50', 'SENSEX'],
     winRate: 75.2,
     profitFactor: 2.20,
     targetRR: '1:2.0',
     active: true,
-    lots: 3,
+    lots: 2,
     dailyTrades: 2,
     dailyPnl: 4150,
-    statusText: 'Active — Compression Index 86%',
+    statusText: 'Active — Scanning Range Breakout',
     timeframe: '15m',
     lastSignalTime: '09:22 AM'
   },
   {
     id: 'vega_straddle_decay',
-    name: 'Dynamic Vega Option Straddle & Theta Decay Bot',
-    code: 'ALGO-VEGA-THETA',
+    name: '4. Options Theta Decay (Intraday Option Seller)',
+    code: 'THETA-DECAY',
     category: 'VEGA_OPTIONS',
-    description: 'Quant Vega/Delta neutral options algo. Captures institutional volatility crush and rapid weekly Theta decay on expiry cycles.',
-    targetSymbols: ['NIFTY OPTIONS', 'BANKNIFTY OPTIONS'],
+    description: 'Weekly expiry din par fast time decay (Theta) aur premium khane ke liye automated ATM Straddle/Strangle sell karta hai.',
+    targetSymbols: ['NIFTY OPTIONS'],
     winRate: 85.0,
     profitFactor: 3.10,
     targetRR: '1:1.8',
-    active: true,
+    active: false,
     lots: 2,
     dailyTrades: 1,
     dailyPnl: 3200,
-    statusText: 'Active — Monitoring Implied Volatility Surface',
+    statusText: 'Paused — Best for Expiry Days',
     timeframe: 'Intraday Expiry',
     lastSignalTime: '10:30 AM'
   },
   {
     id: 'vwap_micro_scalper',
-    name: 'Institutional VWAP Micro-Scalper 1-Min Bot',
-    code: 'ALGO-VWAP-TAPE',
+    name: '5. Fast VWAP Scalper (1-Min Quick Profit)',
+    code: 'VWAP-SCALP',
     category: 'VWAP_SCALP',
-    description: 'Ultra-fast microstructure order flow momentum scalper riding institutional VWAP bands and tape velocity.',
-    targetSymbols: ['NIFTY 50', 'BANK NIFTY'],
+    description: '1-minute chart par VWAP line cross hone par turant quick scalping profit book karta hai.',
+    targetSymbols: ['NIFTY 50'],
     winRate: 76.5,
     profitFactor: 2.15,
     targetRR: '1:2.0',
-    active: true,
+    active: false,
     lots: 1,
     dailyTrades: 5,
     dailyPnl: 2850,
-    statusText: 'Active — Tape Speed Normal (14 ticks/sec)',
+    statusText: 'Paused — High Frequency Mode',
     timeframe: '1m / 3m',
     lastSignalTime: '10:41 AM'
   }
@@ -228,6 +228,7 @@ export const AlgosEngine: React.FC = () => {
 
   // Strategies & Orders State
   const [strategies, setStrategies] = useState<AlgoStrategy[]>(INITIAL_STRATEGIES);
+  const [stratFilter, setStratFilter] = useState<'ALL' | 'CRT' | 'SMC' | 'ACTIVE'>('ALL');
   const [orders, setOrders] = useState<AlgoOrder[]>(INITIAL_ORDERS);
   const [orderFilter, setOrderFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('OPEN');
   
@@ -321,15 +322,27 @@ export const AlgosEngine: React.FC = () => {
 
     let tickCounter = 0;
     const timer = setInterval(() => {
-      setBrokerLatency(Math.floor(18 + Math.random() * 15));
+      const currentMH = marketHoursService.getStatus();
+      setBrokerLatency(currentMH.isOpen ? Math.floor(18 + Math.random() * 15) : 0);
       tickCounter++;
       
+      // If market is not open, do not tick prices or execute trades
+      if (!currentMH.isOpen) {
+        // Just auto square-off any lingering open positions
+        setOrders(prev => prev.map(ord => {
+          if (ord.status === 'OPEN') {
+            return { ...ord, status: 'SQUARED_OFF' };
+          }
+          return ord;
+        }));
+        return;
+      }
+
       // Update open order prices in real time with dynamic market ticks
       setOrders(prev => prev.map(ord => {
         if (ord.status !== 'OPEN') return ord;
 
         // Auto Square-Off at exact market close / 03:15-03:30 PM window
-        const currentMH = marketHoursService.getStatus();
         if (currentMH.autoSquareOffTriggered) {
           addLog('RISK', `⏰ NSE 03:15 PM AUTO SQUARE-OFF TRIGGERED: Closing ${ord.symbol} at ₹${ord.currentPrice.toFixed(2)} due to market closing window.`);
           return { ...ord, status: 'SQUARED_OFF' };
@@ -357,7 +370,6 @@ export const AlgosEngine: React.FC = () => {
       }));
 
       // Autonomous Algorithmic Signal Execution: Every ~15 seconds, if master algo running and market is open
-      const currentMH = marketHoursService.getStatus();
       if (masterAlgoRunning && currentMH.canExecuteLiveOrders && tickCounter % 15 === 0) {
         setOrders(currOrders => {
           const openCount = currOrders.filter(o => o.status === 'OPEN').length;
@@ -707,13 +719,15 @@ export const AlgosEngine: React.FC = () => {
               addLog(next ? 'INFO' : 'RISK', `Master Algo Engine ${next ? 'ACTIVATED' : 'PAUSED'}.`);
             }}
             className={`px-4 py-2 rounded-lg font-mono font-extrabold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm ${
-              masterAlgoRunning
+              !marketHours.isOpen
+                ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                : masterAlgoRunning
                 ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-500/20'
                 : 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20'
             }`}
           >
-            {masterAlgoRunning ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}
-            {masterAlgoRunning ? 'ALGOS ACTIVE' : 'ALGOS PAUSED'}
+            {masterAlgoRunning && marketHours.isOpen ? <Play size={13} fill="currentColor" /> : <Pause size={13} fill="currentColor" />}
+            {!marketHours.isOpen ? 'MARKET BAND HAI (HALTED)' : masterAlgoRunning ? 'ALGOS ACTIVE' : 'ALGOS PAUSED'}
           </button>
 
           {/* Mode Switcher */}
@@ -754,6 +768,20 @@ export const AlgosEngine: React.FC = () => {
 
       {/* YAHOO FINANCE & CONNECTED BROKER REAL-TIME MARKET DATA TAPE */}
       <div className="hud-panel p-4 rounded-2xl overflow-hidden relative">
+        {!marketHours.isOpen && (
+          <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between text-xs text-amber-400 font-mono">
+            <div className="flex items-center gap-2">
+              <Clock size={16} className="text-amber-400 shrink-0" />
+              <span>
+                <strong>Market Band Hai:</strong> Exchange trading hours (09:15 AM - 03:30 PM IST) ke bahar naye orders execute nahi honge aur prices static rahengi.
+              </span>
+            </div>
+            <span className="text-[10px] text-amber-300 font-bold shrink-0 ml-2">
+              Next Open: {marketHours.nextOpenString}
+            </span>
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-black/5 dark:border-white/10">
           <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
             <div className={`w-2.5 h-2.5 rounded-full ${marketHours.isOpen ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`} />
@@ -1191,29 +1219,58 @@ export const AlgosEngine: React.FC = () => {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
-              <Cpu size={18} className="text-indigo-500" />
-              Institutional Strategy Bot Modules
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                <Cpu size={18} className="text-indigo-500" />
+                Trading Strategies (Simple & Clean)
+              </h2>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                {strategies.filter(s => s.active).length} Active
+              </span>
+            </div>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
-              Individual strategy activation, lot sizing, and live state triggers.
+              Sirf wahi strategies on rakhein jinpe aap trade karna chahte hain. CRT Reversal aur SMC Sniper recommended hain.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter Chips */}
+            <div className="flex items-center bg-black/10 dark:bg-black/40 p-1 rounded-xl border border-black/5 dark:border-white/5 text-[10px] font-mono font-bold">
+              {(['ALL', 'ACTIVE', 'CRT', 'SMC'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setStratFilter(tab)}
+                  className={`px-3 py-1 rounded-lg transition-all ${
+                    stratFilter === tab
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {tab === 'ALL' ? 'All (5)' : tab === 'ACTIVE' ? 'Active Only' : `${tab} Only`}
+                </button>
+              ))}
+            </div>
+
             <button
               onClick={handleTriggerSimulatedTrade}
               disabled={isSimulating}
-              className="px-3.5 py-2 bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-500 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+              className="px-3.5 py-1.5 bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-500 dark:text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
             >
               <Zap size={13} className={isSimulating ? 'animate-spin' : ''} />
-              {isSimulating ? 'Dispatching...' : 'Dispatch Signal Trigger'}
+              {isSimulating ? 'Testing...' : 'Test Signal'}
             </button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {strategies.map(strat => (
+          {strategies
+            .filter(strat => {
+              if (stratFilter === 'ACTIVE') return strat.active;
+              if (stratFilter === 'CRT') return strat.category.includes('CRT') || strat.category === 'BREAKOUT';
+              if (stratFilter === 'SMC') return strat.category.includes('SMC');
+              return true;
+            })
+            .map(strat => (
             <div
               key={strat.id}
               className={`p-6 rounded-3xl border transition-all duration-300 flex flex-col justify-between relative group ${

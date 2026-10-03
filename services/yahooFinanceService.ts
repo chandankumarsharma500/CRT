@@ -1,5 +1,6 @@
 import { Candle } from '../types';
 import { tradingViewService, TradingViewQuote } from './tradingViewService';
+import { marketHoursService } from './marketHoursService';
 
 export interface YahooQuote {
   id: string;
@@ -68,6 +69,12 @@ const listeners: Set<Listener> = new Set();
 let tickInterval: any = null;
 
 const applyLiveTick = () => {
+  // If market is closed, freeze prices at their official close, DO NOT generate synthetic price changes
+  const mStatus = marketHoursService.getStatus();
+  if (!mStatus.isOpen) {
+    return;
+  }
+
   const now = Date.now();
   const timeStr = new Date().toLocaleTimeString('en-US', { hour12: false });
 
