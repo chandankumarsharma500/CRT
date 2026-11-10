@@ -7,10 +7,11 @@
     "dev": "vite",
     "lint": "tsc --noEmit",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.mjs"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@google/genai": "^1.33.0",
@@ -19,7 +20,8 @@
     "otpauth": "^9.2.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "express": "^4.21.2"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

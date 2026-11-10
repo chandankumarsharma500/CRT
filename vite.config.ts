@@ -88,9 +88,6 @@ export default defineConfig({
   plugins: [react(), liveMarketPlugin()],
   // Use relative base for assets
   base: './',
-  define: {
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
-  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,

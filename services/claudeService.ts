@@ -42,7 +42,9 @@ export class ClaudeService {
       const stored = localStorage.getItem('gemini_api_key') || localStorage.getItem('user_gemini_api_key') || localStorage.getItem('google_api_key');
       if (stored && stored.trim().length > 5) return stored.trim();
     }
-    return (process.env as any)?.API_KEY || (process.env as any)?.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
+    // Never bundle server environment secrets into browser code. Users may enter a
+    // restricted key in the UI; production server-side AI proxying is a separate task.
+    return "";
   }
 
   public static setGeminiApiKey(key: string): void {
