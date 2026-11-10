@@ -1,32 +1,40 @@
+# CRT Intelligence — Streamlit / Python edition
 
-# SMC Intelligence Core - Deployment Guide
+This repository contains the original React + Vite application and a Python-native Streamlit edition.
 
-Professional trading dashboard implementing Smart Money Concepts and Vega Strategy.
+## Deploy on Streamlit Community Cloud
 
-## 🚀 How to Deploy on Render (Step-by-Step)
+1. Open https://share.streamlit.io/ and sign in with GitHub.
+2. Select **Create app**.
+3. Choose repository `chandankumarsharma500/CRT`, branch `streamlit-python-port`, and main file path `app.py`.
+4. Click **Deploy**.
 
-1.  **GitHub Push**:
-    *   Ensure your files are pushed to `chandankumarsharma500/smc-scanner`.
+Streamlit Community Cloud installs dependencies from `requirements.txt` automatically.
 
-2.  **Create Static Site on Render**:
-    *   Login to [Render Dashboard](https://dashboard.render.com).
-    *   Click **New +** -> **Static Site**.
-    *   Select your `smc-scanner` repository.
+## Run locally
 
-3.  **Build Settings (Updated for Fix)**:
-    *   **Build Command**: `npm run build`
-    *   **Publish Directory**: `dist`
+```bash
+python -m venv .venv
+# Windows: .venv\\Scripts\\activate
+# macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py
+```
 
-4.  **Environment Variables**:
-    *   Go to the **Environment** tab.
-    *   Add **Key**: `API_KEY` | **Value**: `[Your Gemini Key]`.
+## Optional Gemini AI
 
-## ❌ If Build Fails (Troubleshooting)
-1.  **Check Logs**: Click on the "Logs" tab in Render to see the specific error.
-2.  **Node Version**: Render might use an old Node version. This project requires Node 18+.
-3.  **TypeScript Errors**: If the build fails on `tsc`, I have updated the `package.json` to skip this step during deployment to ensure a smooth build.
+In Streamlit Community Cloud open **App → Settings → Secrets** and add:
 
-## 🛠 Tech Stack
-- **React 19 (Vite)**: High-speed frontend.
-- **Tailwind CSS**: Modern UI styling.
-- **Gemini API**: AI reasoning for strategy audits.
+```toml
+GEMINI_API_KEY = "your-key"
+```
+
+Never commit API keys to GitHub.
+
+## Current port status
+
+The Python app includes a market dashboard, EMA/RSI/ATR indicators, a basic CRT range/liquidity scanner, a transparent breakout backtest, a best-effort Yahoo Finance option-chain view, and optional Gemini analysis.
+
+The original React code remains in the repository as reference. Its full Vega/SMC engine, all filters, broker OAuth/order flows, live broker WebSockets, PDF views and advanced AI-agent workflows have **not** been fully ported yet. Broker and exchange integrations require separate Python implementations and credentials. Market data depends on third-party availability and may be delayed.
+
+This is an analytical tool, not financial advice, and it does not place trades.
