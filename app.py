@@ -155,27 +155,89 @@ if page == "Dashboard":
         st.dataframe(data.tail(10).sort_index(ascending=False), use_container_width=True)
 
 elif page == "CRT Scanner":
-    st.subheader("CRT / liquidity scanner")
-    if data.empty:
-        st.error("No candle data returned. Change the instrument or interval.")
+    st.subheader("CRT MULTI-MARKET SCANNER")
+    st.caption("Scan the watchlist, then open any detected setup in an inline chart below.")
+
+    scan_symbols = st.multiselect(
+        "Markets / symbols to scan",
+        options=list(SYMBOLS.keys()),
+        default=list(SYMBOLS.keys()),
+        help="Choose one or more instruments. Data is supplied by Yahoo Finance and may be delayed."
+    )
+    scan_period = st.selectbox("Scanner history", ["1mo", "3mo", "6mo", "1y"], index=1, key="scanner_period")
+    scan_interval = st.selectbox("Scanner timeframe", ["1d", "1h", "30m", "15m", "5m"], index=0, key="scanner_interval")
+
+    scan_rows = []
+    scan_frames = {}
+    if not scan_symbols:
+        st.info("Select at least one symbol to scan.")
     else:
-        fig, enriched = candle_chart(data, f"{instrument_name} · CRT view")
-        st.plotly_chart(fig, use_container_width=True)
-        result = crt_scan(data)
-        st.markdown("### Latest setup")
-        if "Bullish" in result["signal"]:
-            st.success(result["signal"])
-        elif "Bearish" in result["signal"]:
-            st.warning(result["signal"])
+        with st.spinner("Scanning selected markets…"):
+            for name in scan_symbols:
+                ticker_symbol = SYMBOLS[name]
+                frame = load_history(ticker_symbol, scan_period, scan_interval)
+                if frame.empty:
+                    scan_rows.append({"Symbol": name, "Ticker": ticker_symbol, "Setup": "Data unavailable", "Last price": "—", "Range high": "—", "Range low": "—"})
+                    continue
+                setup = crt_scan(frame)
+                levels = setup.get("levels", {})
+                scan_frames[name] = frame
+                scan_rows.append({
+                    "Symbol": name,
+                    "Ticker": ticker_symbol,
+                    "Setup": setup["signal"],
+                    "Last price": fmt(levels.get("Latest close", np.nan)),
+                    "Range high": fmt(levels.get("Range high", np.nan)),
+                    "Range low": fmt(levels.get("Range low", np.nan)),
+                })
+
+        st.dataframe(pd.DataFrame(scan_rows), use_container_width=True, hide_index=True)
+
+        available = list(scan_frames.keys())
+        if available:
+            default_symbol = st.session_state.get("crt_chart_symbol")
+            if default_symbol not in available:
+                default_symbol = available[0]
+            selected_chart_symbol = st.selectbox(
+                "Choose setup / symbol to view",
+                available,
+                index=available.index(default_symbol),
+                key="crt_chart_picker",
+            )
+            if st.button("View chart below", type="primary", use_container_width=False):
+                st.session_state["crt_chart_symbol"] = selected_chart_symbol
+
+            chart_symbol = st.session_state.get("crt_chart_symbol", selected_chart_symbol)
+            if chart_symbol in scan_frames:
+                chart_frame = scan_frames[chart_symbol]
+                chart_result = crt_scan(chart_frame)
+                st.divider()
+                st.markdown(f"### {chart_symbol} · {SYMBOLS[chart_symbol]} · Setup chart")
+                if "Bullish" in chart_result["signal"]:
+                    st.success(chart_result["signal"])
+                elif "Bearish" in chart_result["signal"]:
+                    st.warning(chart_result["signal"])
+                else:
+                    st.info(chart_result["signal"])
+                st.write(chart_result["detail"])
+                chart_fig, chart_enriched = candle_chart(chart_frame, f"{chart_symbol} · {scan_interval}")
+                levels = chart_result.get("levels", {})
+                if levels:
+                    chart_fig.add_hline(y=levels["Range high"], line_dash="dot", line_color="#22c55e", annotation_text="CRT range high")
+                    chart_fig.add_hline(y=levels["Range low"], line_dash="dot", line_color="#ef4444", annotation_text="CRT range low")
+                st.plotly_chart(chart_fig, use_container_width=True)
+                level_cols = st.columns(max(1, len(levels)))
+                for col, (label, value) in zip(level_cols, levels.items()):
+                    col.metric(label, fmt(value))
+                st.caption("Inline chart for the selected scanner result. Rule-based educational scan only; independently verify signals and data.")
+                st.markdown("#### Indicator values")
+                st.dataframe(
+                    chart_enriched[["Open", "High", "Low", "Close", "Volume", "EMA20", "EMA50", "RSI", "ATR"]]
+                    .tail(20).sort_index(ascending=False),
+                    use_container_width=True,
+                )
         else:
-            st.info(result["signal"])
-        st.write(result["detail"])
-        metric_cols = st.columns(len(result["levels"]))
-        for col, (label, value) in zip(metric_cols, result["levels"].items()):
-            col.metric(label, fmt(value))
-        st.caption("Rule-based educational scan using the previous five completed candles. Confirm independently; this is not a trade recommendation.")
-        st.markdown("### Indicator values")
-        st.dataframe(enriched[["Open","High","Low","Close","Volume","EMA20","EMA50","RSI","ATR"]].tail(20).sort_index(ascending=False), use_container_width=True)
+            st.warning("No symbols returned usable market data. Try another timeframe or refresh market data.")
 
 elif page == "Backtesting":
     st.subheader("Simple CRT breakout backtest")
