@@ -1,7 +1,7 @@
 name: Streamlit Python validation
 on:
   push:
-    branches: ["streamlit-python-port"]
+    branches: ["main"]
   pull_request:
     branches: ["main"]
 permissions:
