@@ -1,8 +1,19 @@
 import { yahooFinanceService, YahooQuote } from './yahooFinanceService';
 import { dhanService } from './dhanService';
+import { BrokerId } from '../types';
 
 export interface ClaudeAction {
-  type: 'SQUARE_OFF' | 'START_ALGOS' | 'PAUSE_ALGOS' | 'EXECUTE_TRADE' | 'TOGGLE_MODE' | 'SET_RISK' | 'NONE';
+  type:
+    | 'SQUARE_OFF'
+    | 'START_ALGOS'
+    | 'PAUSE_ALGOS'
+    | 'EXECUTE_TRADE'
+    | 'TOGGLE_MODE'
+    | 'SET_RISK'
+    | 'SWITCH_BROKER'
+    | 'TOGGLE_STRATEGY'
+    | 'REFRESH_YAHOO'
+    | 'NONE';
   symbol?: string;
   side?: 'BUY' | 'SELL';
   lots?: number;
@@ -10,18 +21,24 @@ export interface ClaudeAction {
   sl?: number;
   tp?: number;
   mode?: 'PAPER' | 'LIVE';
+  brokerId?: BrokerId;
+  strategyFilter?: string;
+  strategyActive?: boolean;
+  maxLoss?: number;
+  targetPnl?: number;
   details?: string;
 }
 
 export interface ClaudeResponse {
   text: string;
   action: ClaudeAction;
-  source: 'CLAUDE_API' | 'GEMINI_API' | 'AUTONOMOUS_CRT_ENGINE';
+  source: 'CHATGPT_API' | 'CLAUDE_API' | 'GEMINI_API' | 'AUTONOMOUS_CRT_ENGINE';
   suggestedPromptForClaudeAiWeb?: string;
 }
 
 export class ClaudeService {
   public static CLAUDE_AI_URL = 'https://claude.ai/';
+  public static CHATGPT_URL = 'https://chatgpt.com/u/ratneshbhm';
 
   public static getClaudeApiKey(): string {
     if (typeof window !== 'undefined') {
@@ -89,15 +106,35 @@ Please analyze current market ticks, scan for optimal Ayub Rana CRT liquidity sw
   }
 
   /**
-   * Opens https://claude.ai/ in a new tab with instructions and copies context to clipboard
+   * Generates a complete clipboard payload tailored for ChatGPT (https://chatgpt.com/u/ratneshbhm)
+   * with live Yahoo Finance ticks, DhanHQ quotes, open algo positions, and Ayub Rana CRT rules.
    */
-  public static openClaudeAiWithContext(contextText: string): void {
+  public static generateChatGptContextPayload(params: {
+    activeStrategies: { name: string; active: boolean; pnl: number }[];
+    openOrders: { symbol: string; side: string; qty: number; pnl: number; entry: number; ltp: number }[];
+    totalPnl: number;
+    executionMode: 'PAPER' | 'LIVE';
+    quotes: Record<string, YahooQuote>;
+  }): string {
+    return this.generateClaudeAiContextPayload(params)
+      .replace('FOR CLAUDE.AI / GEMINI', 'FOR CHATGPT (ratneshbhm)')
+      .replace('MY REQUEST TO CLAUDE', 'MY REQUEST TO CHATGPT (https://chatgpt.com/u/ratneshbhm)');
+  }
+
+  /**
+   * Copies context to clipboard safely (link navigation handled via standard anchor elements).
+   */
+  public static copyContextToClipboard(contextText: string): void {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(contextText).catch(() => {});
     }
-    if (typeof window !== 'undefined') {
-      window.open(this.CLAUDE_AI_URL, '_blank', 'noopener,noreferrer');
-    }
+  }
+
+  /**
+   * Copies context and opens external assistant safely if requested.
+   */
+  public static openClaudeAiWithContext(contextText: string): void {
+    this.copyContextToClipboard(contextText);
   }
 
   /**
@@ -129,15 +166,119 @@ Please analyze current market ticks, scan for optimal Ayub Rana CRT liquidity sw
       return { type: 'TOGGLE_MODE', mode: 'LIVE', details: 'Execution mode changed to LIVE broker trading.' };
     }
 
-    // 5. Buy / Sell order execution
+    // 5. Switch Broker (Dhan, Zerodha, Angel One, Upstox, Groww, Fyers, Binance)
+    if (
+      q.includes('broker') ||
+      q.includes('switch') ||
+      q.includes('connect') ||
+      q.includes('lagao') ||
+      q.includes('select') ||
+      q.includes('use karo')
+    ) {
+      const brokerMap: Array<{ keywords: string[]; id: BrokerId; label: string }> = [
+        { keywords: ['dhan'], id: 'DHAN', label: 'Dhan HQ' },
+        { keywords: ['zerodha', 'kite'], id: 'ZERODHA', label: 'Zerodha Kite' },
+        { keywords: ['angel'], id: 'ANGELONE', label: 'Angel One' },
+        { keywords: ['upstox'], id: 'UPSTOX', label: 'Upstox' },
+        { keywords: ['groww'], id: 'GROWW', label: 'Groww' },
+        { keywords: ['fyers'], id: 'FYERS', label: 'Fyers' },
+        { keywords: ['binance'], id: 'BINANCE', label: 'Binance' },
+      ];
+      for (const b of brokerMap) {
+        if (b.keywords.some((k) => q.includes(k))) {
+          return {
+            type: 'SWITCH_BROKER',
+            brokerId: b.id,
+            details: `Execution broker switched to ${b.label} (${b.id}).`,
+          };
+        }
+      }
+    }
+
+    // 6. Toggle Individual Strategy
+    const wantsOn = q.includes('start') || q.includes('enable') || q.includes('on ') || q.endsWith(' on') || q.includes('chalu');
+    const wantsOff = q.includes('pause') || q.includes('stop') || q.includes('disable') || q.includes('off') || q.includes('band');
+    if (wantsOn || wantsOff) {
+      if (q.includes('crt reversal') || q.includes('0.5') || q.includes('mean-reversion')) {
+        return {
+          type: 'TOGGLE_STRATEGY',
+          strategyFilter: 'crt_05_eq',
+          strategyActive: wantsOn && !wantsOff,
+          details: `CRT 0.5 Equilibrium strategy ${wantsOn && !wantsOff ? 'ENABLED' : 'PAUSED'}.`,
+        };
+      }
+      if (q.includes('smc') || q.includes('order block') || q.includes('fvg')) {
+        return {
+          type: 'TOGGLE_STRATEGY',
+          strategyFilter: 'smc_orderblock_fvg',
+          strategyActive: wantsOn && !wantsOff,
+          details: `SMC Order Block & FVG strategy ${wantsOn && !wantsOff ? 'ENABLED' : 'PAUSED'}.`,
+        };
+      }
+      if (q.includes('breakout')) {
+        return {
+          type: 'TOGGLE_STRATEGY',
+          strategyFilter: 'crt_momentum_breakout',
+          strategyActive: wantsOn && !wantsOff,
+          details: `CRT Range Breakout strategy ${wantsOn && !wantsOff ? 'ENABLED' : 'PAUSED'}.`,
+        };
+      }
+      if (q.includes('theta') || q.includes('expiry') || q.includes('straddle')) {
+        return {
+          type: 'TOGGLE_STRATEGY',
+          strategyFilter: 'vega_straddle_decay',
+          strategyActive: wantsOn && !wantsOff,
+          details: `Options Theta Decay strategy ${wantsOn && !wantsOff ? 'ENABLED' : 'PAUSED'}.`,
+        };
+      }
+      if (q.includes('vwap') || q.includes('scalp')) {
+        return {
+          type: 'TOGGLE_STRATEGY',
+          strategyFilter: 'vwap_micro_scalper',
+          strategyActive: wantsOn && !wantsOff,
+          details: `Fast VWAP Scalper strategy ${wantsOn && !wantsOff ? 'ENABLED' : 'PAUSED'}.`,
+        };
+      }
+    }
+
+    // 7. Set Risk Parameters (Max Loss / Daily Target)
+    const lossMatch = q.match(/(?:max loss|stoploss|sl limit|loss limit)[^\d]*(\d{3,6})/);
+    const targetMatch = q.match(/(?:daily target|profit target|target)[^\d]*(\d{3,6})/);
+    if (lossMatch || targetMatch) {
+      const maxLoss = lossMatch ? Number(lossMatch[1]) : undefined;
+      const targetPnl = targetMatch ? Number(targetMatch[1]) : undefined;
+      return {
+        type: 'SET_RISK',
+        maxLoss,
+        targetPnl,
+        details: `Risk parameters updated (${maxLoss ? `Max Loss ₹${maxLoss}` : ''}${maxLoss && targetPnl ? ', ' : ''}${targetPnl ? `Target ₹${targetPnl}` : ''}).`,
+      };
+    }
+
+    // 8. Refresh Yahoo Finance Live Data
+    if ((q.includes('yahoo') || q.includes('price') || q.includes('data')) && (q.includes('refresh') || q.includes('sync') || q.includes('fetch') || q.includes('lao') || q.includes('update'))) {
+      return {
+        type: 'REFRESH_YAHOO',
+        details: 'Live Yahoo Finance quotes refreshed across all 19 instruments.',
+      };
+    }
+
+    // 9. Buy / Sell order execution
     const isBuy = q.includes('buy') || q.includes('kharido') || q.includes('call') || q.includes('long');
     const isSell = q.includes('sell') || q.includes('becho') || q.includes('put') || q.includes('short');
     const isNifty = q.includes('nifty') && !q.includes('bank');
     const isBankNifty = q.includes('banknifty') || q.includes('bank nifty');
+    const isSensex = q.includes('sensex');
 
-    if ((isBuy || isSell) && (isNifty || isBankNifty)) {
-      const symbol = isBankNifty ? 'BANKNIFTY 51400 CE' : 'NIFTY 24900 CE';
-      const basePrice = quote?.price || (isBankNifty ? 51340 : 24865);
+    if ((isBuy || isSell) && (isNifty || isBankNifty || isSensex)) {
+      const allQuotes = yahooFinanceService.getCachedQuotes();
+      const targetQuote = isBankNifty ? allQuotes['bank_nifty'] : isSensex ? allQuotes['sensex'] : quote || allQuotes['nifty'];
+      const basePrice = targetQuote?.price || (isBankNifty ? 64635.20 : isSensex ? 83919.71 : 25800.60);
+      const step = isNifty ? 50 : 100;
+      const atmStrike = Math.round(basePrice / step) * step;
+      const optType = isBuy ? 'CE' : 'PE';
+      const prefix = isBankNifty ? 'BANKNIFTY' : isSensex ? 'SENSEX' : 'NIFTY';
+      const symbol = `${prefix} ${atmStrike} ${optType}`;
       return {
         type: 'EXECUTE_TRADE',
         symbol,
@@ -259,16 +400,68 @@ Aap mujhse koi bhi command de sakte hain:
   }
 
   /**
-   * Main Query Handler: Executes via Claude API or Gemini or Autonomous CRT Engine
+   * Main Query Handler: Executes via ChatGPT (/api/openai/chat), Claude, Gemini, or Autonomous CRT Engine
    */
-  public static async processQuery(query: string, quote?: YahooQuote): Promise<ClaudeResponse> {
+  public static async processQuery(
+    query: string,
+    quote?: YahooQuote,
+    preferredEngine: 'CHATGPT' | 'CLAUDE' | 'AUTO' = 'CHATGPT'
+  ): Promise<ClaudeResponse> {
     const claudeKey = this.getClaudeApiKey();
     const action = this.detectActionFromText(query, quote);
     const dhanQuotes = dhanService.getLatestQuotesSnapshot();
     const dhanNifty = dhanQuotes['nifty'];
-    const livePrice = (dhanService.isConfigured() && dhanNifty?.source === 'REST_API' ? dhanNifty.lastPrice : quote?.price) || dhanNifty?.lastPrice || 24865;
+    const livePrice =
+      (dhanService.isConfigured() && dhanNifty?.source === 'REST_API' ? dhanNifty.lastPrice : quote?.price) ||
+      quote?.price ||
+      dhanNifty?.lastPrice ||
+      25800.60;
 
-    // 1. If Anthropic Claude API Key is present, call Claude via server proxy with live Dhan + Yahoo context
+    const systemPrompt = `You are ChatGPT (ratneshbhm) & Institutional Trading Copilot for an Indian stock & options algorithmic trading terminal connected to Yahoo Finance & DhanHQ.
+You execute and analyze Ayub Rana's Candle Range Theory (CRT) 3-candle model (C1 Anchor, C2 Manipulation Sweep with close-back inside, C3 Distribution on 5M MSS), Smart Money Concepts (OB/FVG), risk limits, and broker execution.
+Live Price for ${quote?.name || 'NIFTY 50'}: ₹${livePrice} (Source: ${dhanService.isConfigured() && dhanNifty?.source === 'REST_API' ? 'DhanHQ + Yahoo Finance' : 'Yahoo Finance Live'}).
+${action.type !== 'NONE' ? `Action triggered in terminal: ${action.details}` : ''}
+Reply concisely in clear Hinglish/English with exact Entry, Stop Loss, and Targets.`;
+
+    // 1. Call Server-Side OpenAI / ChatGPT Bridge (/api/openai/chat)
+    if (preferredEngine === 'CHATGPT' || preferredEngine === 'AUTO') {
+      try {
+        const response = await fetch('/api/openai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            max_tokens: 750,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: query },
+            ],
+          }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const text = data?.choices?.[0]?.message?.content;
+          if (text && String(text).trim().length > 0) {
+            return {
+              text,
+              action,
+              source: 'CHATGPT_API',
+              suggestedPromptForClaudeAiWeb: this.generateChatGptContextPayload({
+                activeStrategies: [],
+                openOrders: [],
+                totalPnl: 0,
+                executionMode: 'LIVE',
+                quotes: yahooFinanceService.getCachedQuotes(),
+              }),
+            };
+          }
+        }
+      } catch (e) {
+        console.warn('Server ChatGPT bridge fallback to next engine:', e);
+      }
+    }
+
+    // 2. If Anthropic Claude API Key is present, call Claude via server proxy with live Dhan + Yahoo context
     if (claudeKey) {
       try {
         const response = await fetch('/api/claude/messages', {
@@ -280,10 +473,7 @@ Aap mujhse koi bhi command de sakte hain:
           body: JSON.stringify({
             model: 'claude-3-5-sonnet-20241022',
             max_tokens: 700,
-            system: `You are Claude AI Trading Copilot for an Indian stock & options algorithmic trading system connected to DhanHQ & live market feeds.
-You specialize in Ayub Rana's Candle Range Theory (CRT) 3-candle model (C1 Anchor Accumulation, C2 Manipulation Sweep with non-negotiable close-back inside, C3 Distribution on 5M MSS).
-Live Price for ${quote?.name || 'NIFTY'}: ₹${livePrice} (Source: ${dhanService.isConfigured() ? 'DhanHQ + Market Feed' : 'Yahoo/TradingView'}).
-Reply in concise, authoritative Hinglish/English with exact Entry, SL, and Target.`,
+            system: systemPrompt,
             messages: [{ role: 'user', content: query }]
           })
         });

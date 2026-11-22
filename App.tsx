@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BookOpen, BarChart, List, Layers, LogIn, TrendingUp, Menu, X, 
   Activity, Terminal, Shield, Zap, Moon, Sun, Globe, FlaskConical, AlertCircle, 
   Maximize2, RefreshCw, Bot, ExternalLink, Copy, Check, AlertOctagon,
-  ChevronRight, Radio, ShieldAlert, Cpu, Sparkles
+  ChevronRight, Radio, ShieldAlert, Cpu, Sparkles, Radar
 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { StrategyRules } from './components/StrategyRules';
@@ -17,13 +17,14 @@ import { StrategyLab } from './components/StrategyLab';
 import { CRTStrategy } from './components/CRTStrategy';
 import { SMCLogo } from './components/SMCLogo';
 import { AlgosEngine } from './components/AlgosEngine';
+import { Scanner5Hub } from './components/Scanner5Hub';
 import { upstoxService } from './services/upstoxService';
 import { yahooFinanceService, YahooQuote } from './services/yahooFinanceService';
 import { ClaudeService } from './services/claudeService';
 import { marketHoursService, MarketHoursStatus } from './services/marketHoursService';
 import { brokerRegistry } from './services/brokerRegistry';
 
-type View = 'algos' | 'dashboard' | 'crt' | 'indices' | 'global-pulse' | 'smart-money' | 'analyst' | 'lab' | 'backtest' | 'rules' | 'login';
+type View = 'algos' | 'dashboard' | 'crt' | 'scanner' | 'indices' | 'global-pulse' | 'smart-money' | 'analyst' | 'lab' | 'backtest' | 'rules' | 'login';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('algos');
@@ -113,6 +114,7 @@ export const App: React.FC = () => {
         />
       );
       case 'crt': return <CRTStrategy />;
+      case 'scanner': return <Scanner5Hub />;
       case 'indices': return <IndicesTracker darkMode={darkMode} />;
       case 'global-pulse': return <GlobalPulse />;
       case 'smart-money': return <SmartMoneyTracker />;
@@ -137,6 +139,7 @@ export const App: React.FC = () => {
     {
       title: 'MARKET RADAR',
       items: [
+        { view: 'scanner' as View, icon: Radar, label: 'CRT & SCANNER 5.0', badge: 'ACTIVE' },
         { view: 'indices' as View, icon: List, label: 'TAPE TICKER' },
         { view: 'global-pulse' as View, icon: Globe, label: 'GLOBAL PULSE' },
         { view: 'smart-money' as View, icon: Layers, label: 'SMC STRUCT' },
@@ -402,7 +405,7 @@ export const App: React.FC = () => {
       <div className="lg:hidden hud-panel border-t border-black/5 dark:border-white/10 flex items-center justify-around py-2.5 px-3 z-30">
         {[
           { id: 'algos' as View, icon: Zap, label: 'Algos' },
-          { id: 'dashboard' as View, icon: LayoutDashboard, label: 'Deck' },
+          { id: 'scanner' as View, icon: Radar, label: 'Scan 5.0' },
           { id: 'crt' as View, icon: Maximize2, label: 'CRT' },
           { id: 'indices' as View, icon: List, label: 'Tape' },
           { id: 'analyst' as View, icon: TrendingUp, label: 'Copilot' },

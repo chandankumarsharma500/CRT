@@ -594,7 +594,29 @@ export const BrokerConnect: React.FC = () => {
                         <RefreshCw size={11} className={isFetchingDhan ? 'animate-spin text-indigo-400' : ''} />
                         Fetch Live Dhan
                       </button>
-                      <button
+                      <a
+                        href={ClaudeService.CHATGPT_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          const payload = ClaudeService.generateChatGptContextPayload({
+                            activeStrategies: [],
+                            openOrders: [],
+                            totalPnl: 0,
+                            executionMode: 'LIVE',
+                            quotes: yahooFinanceService.getCachedQuotes(),
+                          });
+                          ClaudeService.copyContextToClipboard(payload);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                      >
+                        <ExternalLink size={11} />
+                        Sync ChatGPT
+                      </a>
+                      <a
+                        href={ClaudeService.CLAUDE_AI_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         onClick={() => {
                           const payload = ClaudeService.generateClaudeAiContextPayload({
                             activeStrategies: [],
@@ -603,13 +625,13 @@ export const BrokerConnect: React.FC = () => {
                             executionMode: 'LIVE',
                             quotes: yahooFinanceService.getCachedQuotes(),
                           });
-                          ClaudeService.openClaudeAiWithContext(payload);
+                          ClaudeService.copyContextToClipboard(payload);
                         }}
                         className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
                       >
                         <ExternalLink size={11} />
-                        Sync to Claude.ai
-                      </button>
+                        Sync Claude.ai
+                      </a>
                     </div>
                   </div>
 

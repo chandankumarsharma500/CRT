@@ -165,7 +165,7 @@ const INITIAL_ORDERS: AlgoOrder[] = [
     timestamp: '10:14:22',
     strategyId: 'crt_05_eq',
     strategyName: 'CRT 0.5 Mean-Reversion',
-    symbol: 'NIFTY 22800 CE',
+    symbol: 'NIFTY 25800 CE',
     side: 'BUY',
     quantity: 100,
     entryPrice: 142.50,
@@ -182,7 +182,7 @@ const INITIAL_ORDERS: AlgoOrder[] = [
     timestamp: '09:48:05',
     strategyId: 'smc_orderblock_fvg',
     strategyName: 'SMC Liquidity Sweeper',
-    symbol: 'BANKNIFTY 54500 PE',
+    symbol: 'BANKNIFTY 64600 PE',
     side: 'BUY',
     quantity: 30,
     entryPrice: 280.00,
@@ -199,7 +199,7 @@ const INITIAL_ORDERS: AlgoOrder[] = [
     timestamp: '09:22:18',
     strategyId: 'crt_momentum_breakout',
     strategyName: 'CRT Momentum Breakout',
-    symbol: 'NIFTY 22750 CE',
+    symbol: 'NIFTY 25750 CE',
     side: 'BUY',
     quantity: 150,
     entryPrice: 155.00,
@@ -237,13 +237,15 @@ export const AlgosEngine: React.FC = () => {
   const [isSyncingYahoo, setIsSyncingYahoo] = useState<boolean>(false);
   const [lastYahooSync, setLastYahooSync] = useState<string>(new Date().toLocaleTimeString('en-US', { hour12: false }));
 
-  // Claude AI Copilot State
+  // ChatGPT (ratneshbhm) & Claude AI Copilot State
+  const [copilotEngine, setCopilotEngine] = useState<'CHATGPT' | 'CLAUDE' | 'AUTO'>('CHATGPT');
   const [claudeMessages, setClaudeMessages] = useState<ChatMessage[]>([
     {
       id: 'init',
       role: 'claude',
-      text: `👋 **Namaste! Main hoon aapka Claude AI Trading Copilot.**\n\nMain aapke algo ke sabhi kam handle kar sakta hoon:\n• **Ayub Rana Candle Range Theory (CRT)** 3-candle setups scan karna (C1 Anchor, C2 Sweep & Close-back inside, C3 5M MSS)\n• **Live orders dispatch karna** ya Emergency **Square Off / Kill Switch** dabana\n• **Paper vs Live mode** switch karna aur Strategies on/off karna\n• Real-time **Yahoo Finance data** track karna.\n\nKuch bhi command dijiye ya direct **"Open in Claude.ai"** par click karein!`,
-      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
+      text: `👋 **Namaste! ChatGPT (ratneshbhm) + AI Trading Copilot ab active hai.**\n\nMain aapke trading terminal ke **sabhi kaam** handle kar sakta hoon:\n• **Yahoo Finance** live prices refresh & market bias scan karna\n• **Broker Switch** karna (Dhan HQ, Zerodha, Angel One, Upstox)\n• **Strategies On/Off**, **Paper vs Live Mode**, aur **Risk Limits (Max Loss / Target)** set karna\n• **Ayub Rana CRT / SMC** live orders dispatch karna ya **Emergency Square Off** dabana\n\nCommand likhein ya **"Open ChatGPT (ratneshbhm)"** par click karke live context seedha ChatGPT me bhejein!`,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      source: 'CHATGPT_COPILOT'
     }
   ]);
   const [claudeInput, setClaudeInput] = useState<string>('');
@@ -251,6 +253,7 @@ export const AlgosEngine: React.FC = () => {
   const [showClaudeKeyModal, setShowClaudeKeyModal] = useState<boolean>(false);
   const [claudeApiKeyInput, setClaudeApiKeyInput] = useState<string>(() => ClaudeService.getClaudeApiKey());
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
+  const [copiedChatGpt, setCopiedChatGpt] = useState<boolean>(false);
   const claudeChatEndRef = useRef<HTMLDivElement>(null);
 
   // Real-time market feed & broker connection
@@ -310,7 +313,15 @@ export const AlgosEngine: React.FC = () => {
     }
   };
 
-  // Sync broker service & live position P&L ticks
+  const strategiesRef = useRef(strategies);
+  strategiesRef.current = strategies;
+  const executionModeRef = useRef(executionMode);
+  executionModeRef.current = executionMode;
+  const maxOpenPositionsRef = useRef(maxOpenPositions);
+  maxOpenPositionsRef.current = maxOpenPositions;
+  const lastNiftySpotRef = useRef<number | null>(null);
+
+  // Sync broker service & live Yahoo Finance P&L ticks
   useEffect(() => {
     const service = getBrokerService(selectedBroker);
     setWsState(service.getWebSocketState());
@@ -324,10 +335,14 @@ export const AlgosEngine: React.FC = () => {
       const currentMH = marketHoursService.getStatus();
       setBrokerLatency(currentMH.isOpen ? Math.floor(18 + Math.random() * 15) : 0);
       tickCounter++;
-      
+
+      const liveNifty = yahooFinanceService.getQuote('nifty');
+      const liveSpot = liveNifty?.price || 25800.60;
+      const spotDelta = lastNiftySpotRef.current !== null ? liveSpot - lastNiftySpotRef.current : 0;
+      lastNiftySpotRef.current = liveSpot;
+
       // If market is not open, do not tick prices or execute trades
       if (!currentMH.isOpen) {
-        // Just auto square-off any lingering open positions
         setOrders(prev => prev.map(ord => {
           if (ord.status === 'OPEN') {
             return { ...ord, status: 'SQUARED_OFF' };
@@ -337,7 +352,7 @@ export const AlgosEngine: React.FC = () => {
         return;
       }
 
-      // Update open order prices in real time with dynamic market ticks
+      // Update open order prices based on real Yahoo Finance spot movement
       setOrders(prev => prev.map(ord => {
         if (ord.status !== 'OPEN') return ord;
 
@@ -347,8 +362,10 @@ export const AlgosEngine: React.FC = () => {
           return { ...ord, status: 'SQUARED_OFF' };
         }
 
-        const delta = (Math.random() - 0.47) * 1.5;
-        const newPrice = Math.max(ord.entryPrice * 0.7, Number((ord.currentPrice + delta).toFixed(2)));
+        if (spotDelta === 0) return ord;
+        const isCallOption = ord.symbol.includes('CE');
+        const optionDelta = (isCallOption ? 0.55 : -0.55) * spotDelta;
+        const newPrice = Math.max(1, Number((ord.currentPrice + optionDelta).toFixed(2)));
         const pnlDelta = (newPrice - ord.entryPrice) * ord.quantity * (ord.side === 'BUY' ? 1 : -1);
 
         // Auto profit booking / stop loss logic
@@ -368,24 +385,24 @@ export const AlgosEngine: React.FC = () => {
         };
       }));
 
-      // Autonomous Algorithmic Signal Execution: Every ~15 seconds, if master algo running and market is open
+      // Autonomous Algorithmic Signal Execution: Every ~15 seconds during open NSE hours
       if (masterAlgoRunning && currentMH.canExecuteLiveOrders && tickCounter % 15 === 0) {
+        const activeStrats = strategiesRef.current.filter(s => s.active);
+        if (activeStrats.length === 0) return;
+
+        const chosenStrat = activeStrats[tickCounter % activeStrats.length];
+        const ltp = liveNifty?.price || 25800.60;
+        const strike = Math.round(ltp / 50) * 50;
+        const isCall = (liveNifty?.change ?? 0) >= 0;
+        const optSymbol = `NIFTY ${strike} ${isCall ? 'CE' : 'PE'}`;
+        const estEntry = 155.00;
+        const estSl = Number((estEntry - 20).toFixed(2));
+        const estTp = Number((estEntry + 35).toFixed(2));
+        const qty = chosenStrat.lots * 50;
+
         setOrders(currOrders => {
           const openCount = currOrders.filter(o => o.status === 'OPEN').length;
-          if (openCount >= maxOpenPositions) return currOrders;
-
-          const activeStrats = strategies.filter(s => s.active);
-          if (activeStrats.length === 0) return currOrders;
-
-          const chosenStrat = activeStrats[Math.floor(Math.random() * activeStrats.length)];
-          const niftyQ = yahooQuotes['nifty'];
-          const ltp = niftyQ?.price || 25800.60;
-          const strike = Math.round(ltp / 50) * 50;
-          const isCall = (niftyQ?.change ?? 0) >= 0 || Math.random() > 0.4;
-          const optSymbol = `NIFTY ${isCall ? strike + 50 : strike - 50} ${isCall ? 'CE' : 'PE'}`;
-          const estEntry = Number((140 + Math.random() * 30).toFixed(2));
-          const estSl = Number((estEntry - 20).toFixed(2));
-          const estTp = Number((estEntry + 35).toFixed(2));
+          if (openCount >= maxOpenPositionsRef.current) return currOrders;
 
           const autoOrder: AlgoOrder = {
             id: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -394,7 +411,7 @@ export const AlgosEngine: React.FC = () => {
             strategyName: chosenStrat.name,
             symbol: optSymbol,
             side: 'BUY',
-            quantity: chosenStrat.lots * 50,
+            quantity: qty,
             entryPrice: estEntry,
             currentPrice: estEntry,
             stopLoss: estSl,
@@ -405,8 +422,23 @@ export const AlgosEngine: React.FC = () => {
             brokerId: selectedBroker
           };
 
-          addLog('SIGNAL', `⚡ AUTONOMOUS QUANT TRIGGER: ${chosenStrat.name} detected High-Probability Setup on ${optSymbol}.`);
-          addLog('EXECUTION', `🚀 ORDER DISPATCHED: BUY ${optSymbol} (${chosenStrat.lots * 50} Qty) @ ₹${estEntry} [SL: ₹${estSl} | TP: ₹${estTp}] via ${selectedBroker}.`);
+          addLog('SIGNAL', `⚡ AUTONOMOUS QUANT TRIGGER (Yahoo Spot ₹${ltp.toFixed(1)}): ${chosenStrat.name} detected ${isCall ? 'Bullish' : 'Bearish'} Setup on ${optSymbol}.`);
+
+          if (executionModeRef.current === 'LIVE' && brokerRegistry.isConfigured(selectedBroker)) {
+            getBrokerService(selectedBroker).placeOrder({
+              tradingSymbol: optSymbol,
+              transactionType: 'BUY',
+              orderType: 'MARKET',
+              quantity: qty,
+              productType: 'INTRADAY'
+            }).then(() => {
+              addLog('EXECUTION', `🚀 LIVE BROKER ORDER SENT: BUY ${optSymbol} (${qty} Qty) via ${selectedBroker}.`);
+            }).catch((err: Error) => {
+              addLog('ERROR', `Broker order error (${selectedBroker}): ${err.message}`);
+            });
+          } else {
+            addLog('EXECUTION', `📝 [PAPER] ORDER LOGGED: BUY ${optSymbol} (${qty} Qty) @ ₹${estEntry} [SL: ₹${estSl} | TP: ₹${estTp}].`);
+          }
 
           return [autoOrder, ...currOrders];
         });
@@ -469,56 +501,93 @@ export const AlgosEngine: React.FC = () => {
     addLog('RISK', '🚨 EMERGENCY KILL SWITCH ACTIVATED! All open positions squared off immediately.');
   };
 
-  // Execute Action triggered by Claude AI ("jo mere sabhi kam kar sake")
+  // Execute Action triggered by ChatGPT / Claude AI ("jo sare kam ko kar sake")
   const executeClaudeAction = async (action: ClaudeAction) => {
     if (action.type === 'NONE') return;
 
     if (action.type === 'SQUARE_OFF') {
       handlePanicSquareOff();
-      addLog('CLAUDE', 'Claude Executed: Emergency Square Off on all active algo positions.');
+      addLog('CLAUDE', 'AI Copilot Executed: Emergency Square Off on all active algo positions.');
     } else if (action.type === 'START_ALGOS') {
       setMasterAlgoRunning(true);
       setStrategies(prev => prev.map(s => ({ ...s, active: true })));
-      addLog('CLAUDE', 'Claude Executed: Started Master Algo Engine and all 5 trading bots.');
+      addLog('CLAUDE', 'AI Copilot Executed: Started Master Algo Engine and all 5 trading bots.');
     } else if (action.type === 'PAUSE_ALGOS') {
       setMasterAlgoRunning(false);
       setStrategies(prev => prev.map(s => ({ ...s, active: false })));
-      addLog('CLAUDE', 'Claude Executed: Paused Master Algo Engine and all strategies.');
+      addLog('CLAUDE', 'AI Copilot Executed: Paused Master Algo Engine and all strategies.');
     } else if (action.type === 'TOGGLE_MODE') {
       if (action.mode) setExecutionMode(action.mode);
-      addLog('CLAUDE', `Claude Executed: Switched execution mode to ${action.mode}.`);
+      addLog('CLAUDE', `AI Copilot Executed: Switched execution mode to ${action.mode}.`);
+    } else if (action.type === 'SWITCH_BROKER' && action.brokerId) {
+      setSelectedBroker(action.brokerId);
+      brokerRegistry.setActiveBrokerId(action.brokerId);
+      addLog('CLAUDE', `AI Copilot Executed: Active broker switched to ${action.brokerId}.`);
+    } else if (action.type === 'TOGGLE_STRATEGY' && action.strategyFilter) {
+      setStrategies(prev =>
+        prev.map(s =>
+          s.id === action.strategyFilter
+            ? { ...s, active: action.strategyActive ?? !s.active }
+            : s
+        )
+      );
+      addLog('CLAUDE', `AI Copilot Executed: ${action.details || 'Strategy toggled.'}`);
+    } else if (action.type === 'SET_RISK') {
+      if (typeof action.maxLoss === 'number') setMaxDailyLoss(action.maxLoss);
+      if (typeof action.targetPnl === 'number') setDailyProfitTarget(action.targetPnl);
+      addLog('CLAUDE', `AI Copilot Executed: ${action.details || 'Risk settings updated.'}`);
+    } else if (action.type === 'REFRESH_YAHOO') {
+      await fetchYahooQuotes();
+      addLog('CLAUDE', 'AI Copilot Executed: Yahoo Finance live prices refreshed across all instruments.');
     } else if (action.type === 'EXECUTE_TRADE') {
-      const sym = action.symbol || 'NIFTY 24900 CE';
+      const niftyQuote = yahooFinanceService.getQuote('nifty');
+      const liveSpot = niftyQuote?.price || 25800.60;
+      const atmStrike = Math.round(liveSpot / 50) * 50;
+      const sym = action.symbol || `NIFTY ${atmStrike} CE`;
       const side = action.side || 'BUY';
       const lots = action.lots || 2;
-      const niftyQuote = yahooQuotes['nifty'];
-      const baseEntry = niftyQuote ? niftyQuote.price : 24865;
+      const qty = lots * 50;
       const optionEntry = 158.40;
+
+      if (executionMode === 'LIVE' && brokerRegistry.isConfigured(selectedBroker)) {
+        try {
+          await getBrokerService(selectedBroker).placeOrder({
+            tradingSymbol: sym,
+            transactionType: side,
+            orderType: 'MARKET',
+            quantity: qty,
+            productType: 'INTRADAY'
+          });
+          addLog('EXECUTION', `AI Copilot Live Order Dispatched: ${side} ${sym} (${qty} Qty) via ${selectedBroker}.`);
+        } catch (e: any) {
+          addLog('ERROR', `Broker routing error (${selectedBroker}): ${e.message}`);
+        }
+      }
 
       const newOrd: AlgoOrder = {
         id: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
         strategyId: 'crt_05_eq',
-        strategyName: 'Claude CRT Tactical Trade',
+        strategyName: 'ChatGPT CRT Tactical Trade',
         symbol: sym,
         side,
-        quantity: lots * 50,
+        quantity: qty,
         entryPrice: optionEntry,
         currentPrice: optionEntry + 1.20,
         stopLoss: action.sl || optionEntry - 25,
         targetPrice: action.tp || optionEntry + 45,
         pnl: 60,
         status: 'OPEN',
-        brokerOrderId: `BRK-CLAUDE-${Math.floor(10000 + Math.random() * 90000)}`,
+        brokerOrderId: `BRK-AI-${Math.floor(10000 + Math.random() * 90000)}`,
         brokerId: selectedBroker
       };
 
       setOrders(prev => [newOrd, ...prev]);
-      addLog('CLAUDE', `Claude Executed: ${side} ${sym} (${lots * 50} Qty) @ ₹${optionEntry} via ${selectedBroker}.`);
+      addLog('CLAUDE', `AI Copilot Executed: ${side} ${sym} (${qty} Qty) @ ₹${optionEntry} via ${selectedBroker}.`);
     }
   };
 
-  // Handle Claude Chat Submission
+  // Handle ChatGPT / Claude Chat Submission
   const handleClaudeSubmit = async (queryText?: string) => {
     const text = (queryText || claudeInput).trim();
     if (!text || isClaudeThinking) return;
@@ -536,8 +605,8 @@ export const AlgosEngine: React.FC = () => {
     setIsClaudeThinking(true);
 
     try {
-      const niftyQuote = yahooQuotes['nifty'];
-      const resp = await ClaudeService.processQuery(text, niftyQuote);
+      const niftyQuote = yahooFinanceService.getQuote('nifty') || yahooQuotes['nifty'];
+      const resp = await ClaudeService.processQuery(text, niftyQuote, copilotEngine);
 
       let actionDesc: string | undefined = undefined;
       if (resp.action.type !== 'NONE') {
@@ -556,7 +625,7 @@ export const AlgosEngine: React.FC = () => {
 
       setClaudeMessages(prev => [...prev, claudeMsg]);
     } catch (e: any) {
-      const autoText = ClaudeService.generateAutonomousCRTSolution(text, yahooQuotes['nifty']);
+      const autoText = ClaudeService.generateAutonomousCRTSolution(text, yahooFinanceService.getQuote('nifty') || yahooQuotes['nifty']);
       setClaudeMessages(prev => [
         ...prev,
         {
@@ -572,46 +641,46 @@ export const AlgosEngine: React.FC = () => {
     }
   };
 
-  // Copy full Algo State & Open https://claude.ai/
-  const handleLaunchClaudeAi = () => {
-    const payload = ClaudeService.generateClaudeAiContextPayload({
-      activeStrategies: strategies.map(s => ({ name: s.name, active: s.active, pnl: s.dailyPnl })),
-      openOrders: orders.filter(o => o.status === 'OPEN').map(o => ({
-        symbol: o.symbol,
-        side: o.side,
-        qty: o.quantity,
-        entry: o.entryPrice,
-        ltp: o.currentPrice,
-        pnl: o.pnl
-      })),
-      totalPnl: totalAlgoPnl,
-      executionMode,
-      quotes: yahooQuotes
-    });
+  const buildCurrentContextParams = () => ({
+    activeStrategies: strategies.map(s => ({ name: s.name, active: s.active, pnl: s.dailyPnl })),
+    openOrders: orders.filter(o => o.status === 'OPEN').map(o => ({
+      symbol: o.symbol,
+      side: o.side,
+      qty: o.quantity,
+      entry: o.entryPrice,
+      ltp: o.currentPrice,
+      pnl: o.pnl
+    })),
+    totalPnl: totalAlgoPnl,
+    executionMode,
+    quotes: yahooQuotes
+  });
 
-    ClaudeService.openClaudeAiWithContext(payload);
+  // Copy full Algo State for ChatGPT (https://chatgpt.com/u/ratneshbhm)
+  const handleLaunchChatGpt = () => {
+    const payload = ClaudeService.generateChatGptContextPayload(buildCurrentContextParams());
+    ClaudeService.copyContextToClipboard(payload);
+    setCopiedChatGpt(true);
+    setTimeout(() => setCopiedChatGpt(false), 3000);
+    addLog('CLAUDE', 'ChatGPT Bridge (ratneshbhm): Live Yahoo Finance ticks & Algo State copied for https://chatgpt.com/u/ratneshbhm.');
+  };
+
+  // Copy full Algo State for https://claude.ai/
+  const handleLaunchClaudeAi = () => {
+    const payload = ClaudeService.generateClaudeAiContextPayload(buildCurrentContextParams());
+    ClaudeService.copyContextToClipboard(payload);
     setCopiedPayload(true);
     setTimeout(() => setCopiedPayload(false), 3000);
-    addLog('CLAUDE', 'Claude.ai Bridge: Complete Algo State & Yahoo Finance ticks copied to clipboard and launched https://claude.ai/.');
+    addLog('CLAUDE', 'Claude.ai Bridge: Complete Algo State & Yahoo Finance ticks copied to clipboard.');
   };
 
   const handleCopyPayloadOnly = () => {
-    const payload = ClaudeService.generateClaudeAiContextPayload({
-      activeStrategies: strategies.map(s => ({ name: s.name, active: s.active, pnl: s.dailyPnl })),
-      openOrders: orders.filter(o => o.status === 'OPEN').map(o => ({
-        symbol: o.symbol,
-        side: o.side,
-        qty: o.quantity,
-        entry: o.entryPrice,
-        ltp: o.currentPrice,
-        pnl: o.pnl
-      })),
-      totalPnl: totalAlgoPnl,
-      executionMode,
-      quotes: yahooQuotes
-    });
+    const payload =
+      copilotEngine === 'CLAUDE'
+        ? ClaudeService.generateClaudeAiContextPayload(buildCurrentContextParams())
+        : ClaudeService.generateChatGptContextPayload(buildCurrentContextParams());
 
-    navigator.clipboard.writeText(payload);
+    ClaudeService.copyContextToClipboard(payload);
     setCopiedPayload(true);
     setTimeout(() => setCopiedPayload(false), 2500);
   };
@@ -622,7 +691,13 @@ export const AlgosEngine: React.FC = () => {
     const activeStrats = strategies.filter(s => s.active);
     const strat = activeStrats[Math.floor(Math.random() * activeStrats.length)] || strategies[0];
     
-    addLog('SIGNAL', `Quant Signal Generator: ${strat.name} detected high-probability sniper setup on NIFTY 50.`);
+    const niftyQuote = yahooFinanceService.getQuote('nifty');
+    const spotPrice = niftyQuote?.price || 25800.60;
+    const atmStrike = Math.round(spotPrice / 50) * 50;
+    const optType = (niftyQuote?.change ?? 0) >= 0 ? 'CE' : 'PE';
+    const dynamicSymbol = `NIFTY ${atmStrike} ${optType}`;
+
+    addLog('SIGNAL', `Quant Signal Generator (Yahoo NIFTY ₹${spotPrice.toFixed(1)}): ${strat.name} detected sniper setup on ${dynamicSymbol}.`);
     
     await new Promise(r => setTimeout(r, 600));
 
@@ -632,18 +707,18 @@ export const AlgosEngine: React.FC = () => {
     if (isLive) {
       try {
         await brokerService.placeOrder({
-          tradingSymbol: 'NIFTY 24900 CE',
+          tradingSymbol: dynamicSymbol,
           transactionType: 'BUY',
           orderType: 'MARKET',
           quantity: strat.lots * 50,
           productType: 'INTRADAY'
         });
-        addLog('EXECUTION', `Broker API (${selectedBroker}): Live Order successfully dispatched via REST/WS.`);
+        addLog('EXECUTION', `Broker API (${selectedBroker}): Live Order successfully dispatched for ${dynamicSymbol}.`);
       } catch (e: any) {
         addLog('ERROR', `Broker order routing error: ${e.message}`);
       }
     } else {
-      addLog('EXECUTION', `[Paper Mode]: Order simulated with zero-slippage fill at active LTP.`);
+      addLog('EXECUTION', `[Paper Mode]: Order simulated for ${dynamicSymbol} at active Yahoo Spot ₹${spotPrice.toFixed(1)}.`);
     }
 
     const newOrd: AlgoOrder = {
@@ -651,7 +726,7 @@ export const AlgosEngine: React.FC = () => {
       timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
       strategyId: strat.id,
       strategyName: strat.name,
-      symbol: 'NIFTY 24900 CE',
+      symbol: dynamicSymbol,
       side: 'BUY',
       quantity: strat.lots * 50,
       entryPrice: 154.20,
@@ -841,55 +916,87 @@ export const AlgosEngine: React.FC = () => {
         </div>
       </div>
 
-      {/* CLAUDE AI TRADING COPILOT & AYUB RANA CRT ASSISTANT (https://claude.ai/ Bridge) */}
+      {/* CHATGPT (ratneshbhm), CLAUDE & GEMINI AI TRADING COPILOT */}
       <div className="hud-panel p-5 lg:p-6 rounded-2xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-black/5 dark:border-white/10">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-sm">
               <Bot size={24} />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2 font-mono">
                 <h3 className="text-base lg:text-lg font-black font-display text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                  Claude & Gemini AI Trading Copilot
+                  ChatGPT (ratneshbhm) &amp; AI Trading Copilot
                 </h3>
-                <span className="text-[10px] text-amber-400 font-extrabold uppercase">
-                  · AYUB RANA CRT PDF MODEL
+                <span className="text-[10px] text-emerald-400 font-extrabold uppercase">
+                  · FULL ALGO CONTROL
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Full algorithmic automation: Ayub Rana 3-Candle CRT scans, order execution, mode toggle, and one-click sync with <strong className="text-amber-400">https://claude.ai/</strong>
+                Sabhi kaam ek jagah: Yahoo Finance sync, Broker switch, Strategy on/off, CRT scans, order execution aur direct sync with <strong className="text-emerald-400">https://chatgpt.com/u/ratneshbhm</strong>
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0 font-mono">
-            {/* Open https://claude.ai/ Button */}
-            <button
-              onClick={handleLaunchClaudeAi}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-black rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all active:scale-95"
+            {/* Engine Switcher */}
+            <div className="flex items-center bg-black/15 dark:bg-black/40 p-1 rounded-lg border border-black/5 dark:border-white/10 text-[10px] font-bold">
+              {(['CHATGPT', 'CLAUDE', 'AUTO'] as const).map((eng) => (
+                <button
+                  key={eng}
+                  onClick={() => setCopilotEngine(eng)}
+                  className={`px-2.5 py-1 rounded transition-all ${
+                    copilotEngine === eng
+                      ? 'bg-emerald-500 text-black font-extrabold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {eng}
+                </button>
+              ))}
+            </div>
+
+            {/* Open https://chatgpt.com/u/ratneshbhm */}
+            <a
+              href={ClaudeService.CHATGPT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleLaunchChatGpt}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-400 hover:opacity-95 text-black rounded-lg text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 shadow-sm transition-all active:scale-95"
             >
               <ExternalLink size={14} />
-              Open in Claude.ai
-            </button>
+              {copiedChatGpt ? 'Copied! Opening ChatGPT' : 'Open ChatGPT (ratneshbhm)'}
+            </a>
+
+            {/* Open https://claude.ai/ */}
+            <a
+              href={ClaudeService.CLAUDE_AI_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleLaunchClaudeAi}
+              className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-95 text-black rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+            >
+              <ExternalLink size={13} />
+              Claude.ai
+            </a>
 
             {/* Copy Payload Button */}
             <button
               onClick={handleCopyPayloadOnly}
-              className="px-3.5 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-300 border border-black/5 dark:border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
-              title="Copy complete Algo & Market context formatted for Claude"
+              className="px-3 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-300 border border-black/5 dark:border-white/10 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+              title="Copy complete Algo & Yahoo Finance context for ChatGPT"
             >
               {copiedPayload ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-              {copiedPayload ? 'Copied Context' : 'Copy for Claude'}
+              {copiedPayload ? 'Copied' : 'Copy Context'}
             </button>
 
             {/* Claude API Key config */}
             <button
               onClick={() => setShowClaudeKeyModal(!showClaudeKeyModal)}
-              className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition-all"
-              title="Configure Anthropic Claude API Key (Optional)"
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition-all"
+              title="Optional Claude Settings"
             >
-              <Key size={16} />
+              <Key size={15} />
             </button>
           </div>
         </div>
@@ -904,7 +1011,7 @@ export const AlgosEngine: React.FC = () => {
                   Anthropic Claude API Key (Optional)
                 </h5>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Optional: Enter your Anthropic Claude Key to prioritize Claude over the built-in server AI &amp; Autonomous CRT Engine.
+                  Optional: Enter your Anthropic Claude Key to prioritize Claude alongside the server-side ChatGPT &amp; Gemini engines.
                 </p>
               </div>
             </div>
@@ -935,27 +1042,28 @@ export const AlgosEngine: React.FC = () => {
 
         {/* Quick Action Prompt Chips */}
         <div className="flex flex-wrap items-center gap-2 pt-4">
-          <span className="text-[10px] font-bold uppercase text-purple-300 tracking-wider">Quick Commands:</span>
+          <span className="text-[10px] font-bold uppercase text-emerald-400 tracking-wider">All-Task Commands:</span>
           {[
-            { label: '🎯 Scan Ayub Rana CRT Setups', query: 'Ayub Rana CRT PDF ke rules ke anusaar Nifty ka C1, C2 aur C3 setup scan karo' },
-            { label: '⚡ Execute CRT 0.5 EQ Trade', query: 'Buy Nifty CE near 5M FVG retest targeting 0.5 Equilibrium' },
-            { label: '🛑 Square Off All Positions', query: 'Emergency square off all positions now' },
+            { label: '🎯 Scan CRT Setup', query: 'Ayub Rana CRT PDF ke rules ke anusaar Nifty ka C1, C2 aur C3 setup scan karo' },
+            { label: '📈 Refresh Yahoo Live', query: 'Yahoo Finance live price refresh karo aur trend batao' },
+            { label: '🔗 Switch Broker: Dhan', query: 'Dhan broker connect karo' },
+            { label: '⚡ Buy Nifty ATM CE', query: 'Buy Nifty CE near 5M FVG retest' },
             { label: '▶️ Start All Algos', query: 'Start all algos' },
             { label: '⏸️ Pause All Algos', query: 'Pause all algos' },
-            { label: '📊 Yahoo Live Ticks Audit', query: 'Yahoo Finance live ticks ke basis par market trend aur bias kya hai?' },
-            { label: '📖 Explain PDF CRT Rules', query: 'PDF me batayi gayi Ayub Rana CRT strategy ke 3 rules explain karo' }
+            { label: '🛡️ Set Max Loss ₹3000', query: 'Max loss 3000 set karo' },
+            { label: '🛑 Square Off All', query: 'Emergency square off all positions now' }
           ].map((chip, idx) => (
             <button
               key={idx}
               onClick={() => handleClaudeSubmit(chip.query)}
-              className="px-2.5 py-1 bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/30 rounded-lg text-[10px] font-bold transition-all hover:scale-102 flex items-center gap-1 active:scale-95"
+              className="px-2.5 py-1 bg-emerald-950/60 hover:bg-emerald-900/60 text-emerald-200 border border-emerald-500/30 rounded-lg text-[10px] font-bold transition-all hover:scale-102 flex items-center gap-1 active:scale-95"
             >
               {chip.label}
             </button>
           ))}
         </div>
 
-        {/* Claude Chat Feed */}
+        {/* AI Chat Feed */}
         <div className="mt-4 bg-slate-950/70 rounded-2xl border border-slate-800 p-4 max-h-72 overflow-y-auto space-y-3 custom-scrollbar">
           {claudeMessages.map((msg) => (
             <div
@@ -965,18 +1073,18 @@ export const AlgosEngine: React.FC = () => {
               <div
                 className={`max-w-[88%] rounded-2xl p-3.5 text-xs leading-relaxed ${
                   msg.role === 'user'
-                    ? 'bg-purple-600 text-white rounded-br-none'
+                    ? 'bg-emerald-600 text-white rounded-br-none'
                     : 'bg-slate-900/90 text-slate-200 rounded-bl-none border border-slate-800 shadow-md'
                 }`}
               >
                 {msg.role === 'claude' && (
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[10px] font-black uppercase text-purple-400">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[10px] font-black uppercase text-emerald-400">
                     <span className="flex items-center gap-1.5">
-                      <Sparkles size={11} className="text-amber-400" />
-                      Claude AI Assistant
+                      <Sparkles size={11} className="text-emerald-400" />
+                      ChatGPT (ratneshbhm) &amp; AI Copilot
                     </span>
                     <span className="text-[9px] text-slate-500 font-mono">
-                      {msg.source ? msg.source.replace('_', ' ') : 'Ayub Rana Engine'}
+                      {msg.source ? msg.source.replace(/_/g, ' ') : 'ChatGPT Copilot'}
                     </span>
                   </div>
                 )}
@@ -997,9 +1105,9 @@ export const AlgosEngine: React.FC = () => {
 
           {isClaudeThinking && (
             <div className="flex justify-start">
-              <div className="bg-slate-900/90 rounded-2xl rounded-bl-none p-3 border border-slate-800 flex items-center gap-2 text-xs text-purple-300">
-                <RefreshCw size={13} className="animate-spin text-purple-400" />
-                Claude is analyzing Yahoo Finance ticks & CRT PDF strategy...
+              <div className="bg-slate-900/90 rounded-2xl rounded-bl-none p-3 border border-slate-800 flex items-center gap-2 text-xs text-emerald-300">
+                <RefreshCw size={13} className="animate-spin text-emerald-400" />
+                ChatGPT Copilot is analyzing Yahoo Finance ticks &amp; executing command...
               </div>
             </div>
           )}
@@ -1010,16 +1118,16 @@ export const AlgosEngine: React.FC = () => {
         <div className="mt-3 flex items-center gap-2">
           <input
             type="text"
-            placeholder="Command Claude: 'Buy Nifty CE', 'Square off', 'Scan CRT setup', or ask anything..."
+            placeholder="Command ChatGPT: 'Buy Nifty CE', 'Dhan broker lagao', 'Start all algos', 'Max loss 3000', 'Square off'..."
             value={claudeInput}
             onChange={(e) => setClaudeInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleClaudeSubmit()}
-            className="flex-1 bg-slate-950 border border-purple-500/30 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-purple-400 font-sans shadow-inner"
+            className="flex-1 bg-slate-950 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 outline-none focus:border-emerald-400 font-sans shadow-inner"
           />
           <button
             onClick={() => handleClaudeSubmit()}
             disabled={isClaudeThinking || !claudeInput.trim()}
-            className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-90 disabled:opacity-50 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-purple-600/20 shrink-0 transition-all"
+            className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 disabled:opacity-50 text-black rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md shadow-emerald-600/20 shrink-0 transition-all"
           >
             <Send size={13} />
             Send

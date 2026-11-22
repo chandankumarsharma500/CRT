@@ -132,7 +132,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
     };
   }, [activeYahooQuote, selectedIndex]);
 
-  const handleOpenInClaude = () => {
+  const [copiedChatGpt, setCopiedChatGpt] = useState(false);
+
+  const handleCopyForClaude = () => {
     const payload = ClaudeService.generateClaudeAiContextPayload({
       activeStrategies: [
         { name: 'CRT 0.5 EQ Mean-Reversion Bot', active: true, pnl: 8450 },
@@ -144,10 +146,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
       quotes: yahooQuotes
     });
 
-    navigator.clipboard.writeText(payload);
+    ClaudeService.copyContextToClipboard(payload);
     setCopiedClaude(true);
     setTimeout(() => setCopiedClaude(false), 3000);
-    window.open('https://claude.ai/', '_blank');
+  };
+
+  const handleCopyForChatGpt = () => {
+    const payload = ClaudeService.generateChatGptContextPayload({
+      activeStrategies: [
+        { name: 'CRT 0.5 EQ Mean-Reversion Bot', active: true, pnl: 8450 },
+        { name: 'SMC Order Block & FVG Sweeper', active: true, pnl: 6200 },
+      ],
+      openOrders: [],
+      totalPnl: 14650,
+      executionMode: 'PAPER',
+      quotes: yahooQuotes
+    });
+
+    ClaudeService.copyContextToClipboard(payload);
+    setCopiedChatGpt(true);
+    setTimeout(() => setCopiedChatGpt(false), 3000);
   };
 
   const tickerList = [
@@ -250,14 +268,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleOpenInClaude}
+            <a
+              href={ClaudeService.CHATGPT_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleCopyForChatGpt}
+              className="px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 font-mono text-xs font-bold flex items-center gap-2 transition-all active:scale-95"
+            >
+              <Bot size={14} className="text-emerald-400" />
+              {copiedChatGpt ? 'COPIED TO CHATGPT!' : 'CHATGPT (ratneshbhm)'}
+              <ExternalLink size={12} />
+            </a>
+            <a
+              href={ClaudeService.CLAUDE_AI_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleCopyForClaude}
               className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold flex items-center gap-2 transition-all active:scale-95"
             >
               <Bot size={14} className="text-amber-400" />
-              {copiedClaude ? 'COPIED TO CLAUDE!' : 'ANALYZE IN CLAUDE.AI'}
+              {copiedClaude ? 'COPIED TO CLAUDE!' : 'CLAUDE.AI'}
               <ExternalLink size={12} />
-            </button>
+            </a>
             <div className={`px-4 py-2 rounded-xl border font-mono text-xs font-bold uppercase tracking-wider ${trendInfo.colorClass}`}>
               <Shield size={14} className="inline mr-1.5" />
               {trendInfo.label}

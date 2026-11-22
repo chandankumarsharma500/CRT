@@ -341,6 +341,66 @@ async function startServer() {
     }
   });
 
+  // --- Server-Side OpenAI / ChatGPT Bridge ---
+  app.post('/api/openai/chat', async (req: Request, res: Response) => {
+    try {
+      const apiKey = process.env.OPENAI_API_KEY || '';
+      if (!apiKey.trim()) {
+        res.status(503).json({ error: 'OpenAI API key is not configured on the server.' });
+        return;
+      }
+      const { model, max_tokens, messages } = req.body ?? {};
+      if (!Array.isArray(messages) || messages.length === 0 || messages.length > 20) {
+        res.status(400).json({ error: 'Valid messages array (1-20 items) is required.' });
+        return;
+      }
+
+      const allowedRoles = new Set(['system', 'user', 'assistant']);
+      const sanitizedMessages = messages
+        .filter((m: unknown): m is { role: string; content: string } =>
+          Boolean(
+            m &&
+              typeof m === 'object' &&
+              typeof (m as { role?: unknown }).role === 'string' &&
+              allowedRoles.has((m as { role: string }).role) &&
+              typeof (m as { content?: unknown }).content === 'string'
+          )
+        )
+        .map((m) => ({
+          role: m.role,
+          content: m.content.slice(0, 8000),
+        }));
+
+      if (sanitizedMessages.length === 0) {
+        res.status(400).json({ error: 'At least one valid message is required.' });
+        return;
+      }
+
+      const allowedModels = new Set(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1']);
+      const chosenModel =
+        typeof model === 'string' && allowedModels.has(model) ? model : 'gpt-4o-mini';
+
+      const upstream = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey.trim()}`,
+          'Content-Type': 'application/json',
+        },
+        signal: AbortSignal.timeout(15000),
+        body: JSON.stringify({
+          model: chosenModel,
+          max_tokens: typeof max_tokens === 'number' ? Math.min(2048, Math.max(64, max_tokens)) : 800,
+          messages: sanitizedMessages,
+        }),
+      });
+      const data = await upstream.json().catch(() => ({}));
+      res.status(upstream.status).json(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(502).json({ error: `OpenAI ChatGPT request failed: ${message}` });
+    }
+  });
+
   // --- Dedicated Yahoo Finance Live Quotes Endpoint (v8/finance/chart) ---
   const YAHOO_QUOTE_SYMBOLS: Array<{ id: string; symbol: string; name: string }> = [
     { id: 'nifty', symbol: '^NSEI', name: 'NIFTY 50' },
@@ -520,6 +580,204 @@ async function startServer() {
       });
       const json = await response.json();
       res.json(json);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ status: 'ERROR', error: message });
+    }
+  });
+
+  // --- Batch Yahoo Finance OHLCV Scanner Endpoint (India CRT + Scanner 5.0) ---
+  interface ScannerBar {
+    time: string;
+    timestamp: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }
+
+  const ALLOWED_SCANNER_INTERVALS = new Set(['5m', '15m', '1h', '60m', '1d', '1wk']);
+  const ALLOWED_SCANNER_RANGES = new Set(['5d', '1mo', '3mo', '6mo', '1y', '2y', '5y']);
+  const SYMBOL_REGEX = /^[A-Z0-9^._=&-]{1,24}$/;
+  const scannerCandleCache = new Map<string, { timestamp: number; bars: ScannerBar[] }>();
+  const SCANNER_CACHE_TTL_MS = 60_000;
+
+  async function fetchSingleYahooCandles(
+    symbol: string,
+    interval: string,
+    range: string
+  ): Promise<{ bars: ScannerBar[]; cached: boolean }> {
+    const cacheKey = `${symbol}|${interval}|${range}`;
+    const now = Date.now();
+    const hit = scannerCandleCache.get(cacheKey);
+    if (hit && now - hit.timestamp < SCANNER_CACHE_TTL_MS) {
+      return { bars: hit.bars, cached: true };
+    }
+
+    const target = new URL(
+      `/v8/finance/chart/${encodeURIComponent(symbol)}`,
+      'https://query1.finance.yahoo.com'
+    );
+    target.searchParams.set('interval', interval);
+    target.searchParams.set('range', range);
+    target.searchParams.set('events', 'div,splits');
+
+    const resp = await fetch(target.toString(), {
+      headers: { 'User-Agent': BROWSER_USER_AGENT },
+      signal: AbortSignal.timeout(7000),
+    });
+
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status} for ${symbol}`);
+    }
+
+    const payload = (await resp.json()) as {
+      chart?: {
+        error?: { description?: string };
+        result?: Array<{
+          timestamp?: number[];
+          indicators?: {
+            quote?: Array<{
+              open?: Array<number | null>;
+              high?: Array<number | null>;
+              low?: Array<number | null>;
+              close?: Array<number | null>;
+              volume?: Array<number | null>;
+            }>;
+          };
+        }>;
+      };
+    };
+
+    if (payload?.chart?.error) {
+      throw new Error(payload.chart.error.description || `Yahoo chart error for ${symbol}`);
+    }
+
+    const result = payload?.chart?.result?.[0];
+    const timestamps = result?.timestamp ?? [];
+    const q = result?.indicators?.quote?.[0] ?? {};
+    const opens = q.open ?? [];
+    const highs = q.high ?? [];
+    const lows = q.low ?? [];
+    const closes = q.close ?? [];
+    const volumes = q.volume ?? [];
+
+    const bars: ScannerBar[] = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const ts = timestamps[i];
+      const o = opens[i];
+      const h = highs[i];
+      const l = lows[i];
+      const c = closes[i];
+      const v = volumes[i];
+      if (
+        typeof ts !== 'number' ||
+        typeof o !== 'number' ||
+        typeof h !== 'number' ||
+        typeof l !== 'number' ||
+        typeof c !== 'number' ||
+        !Number.isFinite(o) ||
+        !Number.isFinite(h) ||
+        !Number.isFinite(l) ||
+        !Number.isFinite(c)
+      ) {
+        continue;
+      }
+      const ms = ts * 1000;
+      bars.push({
+        time: new Date(ms).toISOString(),
+        timestamp: ms,
+        open: Number(o.toFixed(4)),
+        high: Number(h.toFixed(4)),
+        low: Number(l.toFixed(4)),
+        close: Number(c.toFixed(4)),
+        volume: typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.round(v)) : 0,
+      });
+    }
+
+    scannerCandleCache.set(cacheKey, { timestamp: now, bars });
+    if (scannerCandleCache.size > 250) {
+      const oldestKey = scannerCandleCache.keys().next().value;
+      if (oldestKey) scannerCandleCache.delete(oldestKey);
+    }
+
+    return { bars, cached: false };
+  }
+
+  app.post('/api/scanner/candles', async (req: Request, res: Response) => {
+    try {
+      const rawSymbols = req.body?.symbols;
+      if (!Array.isArray(rawSymbols) || rawSymbols.length === 0 || rawSymbols.length > 35) {
+        res.status(400).json({ error: 'Provide between 1 and 35 valid symbols.' });
+        return;
+      }
+
+      const interval =
+        typeof req.body?.interval === 'string' && ALLOWED_SCANNER_INTERVALS.has(req.body.interval)
+          ? req.body.interval
+          : '1d';
+      const range =
+        typeof req.body?.range === 'string' && ALLOWED_SCANNER_RANGES.has(req.body.range)
+          ? req.body.range
+          : '3mo';
+
+      const cleanSymbols: string[] = [];
+      const seen = new Set<string>();
+      for (const s of rawSymbols) {
+        if (typeof s !== 'string') continue;
+        const norm = s.trim().toUpperCase();
+        if (SYMBOL_REGEX.test(norm) && !seen.has(norm)) {
+          seen.add(norm);
+          cleanSymbols.push(norm);
+        }
+      }
+
+      if (cleanSymbols.length === 0) {
+        res.status(400).json({ error: 'No valid ticker symbols provided.' });
+        return;
+      }
+
+      const candlesBySymbol: Record<string, ScannerBar[]> = {};
+      const errors: Array<{ symbol: string; error: string }> = [];
+      let cachedCount = 0;
+
+      // Batch in chunks of 6 to stay friendly to upstream Yahoo Finance
+      const CHUNK_SIZE = 6;
+      for (let i = 0; i < cleanSymbols.length; i += CHUNK_SIZE) {
+        const chunk = cleanSymbols.slice(i, i + CHUNK_SIZE);
+        const settled = await Promise.allSettled(
+          chunk.map(async (sym) => {
+            const out = await fetchSingleYahooCandles(sym, interval, range);
+            return { sym, ...out };
+          })
+        );
+        for (let idx = 0; idx < settled.length; idx++) {
+          const item = settled[idx];
+          const sym = chunk[idx];
+          if (item.status === 'fulfilled') {
+            candlesBySymbol[sym] = item.value.bars;
+            if (item.value.cached) cachedCount++;
+          } else {
+            errors.push({
+              symbol: sym,
+              error: item.reason instanceof Error ? item.reason.message : String(item.reason),
+            });
+          }
+        }
+      }
+
+      res.json({
+        status: 'SCANNER_OK',
+        interval,
+        range,
+        requested: cleanSymbols.length,
+        returned: Object.keys(candlesBySymbol).length,
+        cachedCount,
+        fetchedAt: Date.now(),
+        candlesBySymbol,
+        errors,
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ status: 'ERROR', error: message });
