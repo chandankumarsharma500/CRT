@@ -1,4 +1,5 @@
 import { BrokerId, BrokerMetadata, BrokerProfile, BrokerHolding } from '../types';
+import { dhanService } from './dhanService';
 
 export const OFFICIAL_REDIRECT_URI = 'https://crt-9nue.onrender.com';
 
@@ -495,6 +496,7 @@ class BrokerRegistryService {
         environment: 'PRODUCTION',
         redirectUri: OFFICIAL_REDIRECT_URI
       }));
+      dhanService.saveConfig(cleanData.apiKey, cleanData.apiSecret, 'PRODUCTION', OFFICIAL_REDIRECT_URI);
     } else if (brokerId === 'ZERODHA') {
       localStorage.setItem('zerodha_config', JSON.stringify({
         apiKey: cleanData.apiKey,
@@ -585,11 +587,41 @@ class BrokerRegistryService {
 
   async testConnection(brokerId: BrokerId, creds: Record<string, string>): Promise<{ success: boolean; profile: BrokerProfile; latencyMs: number }> {
     const start = performance.now();
-    await new Promise(r => setTimeout(r, 450));
-    const latency = Math.round(performance.now() - start);
-
     const brokerMeta = this.getBrokerMetadata(brokerId);
     const identifier = creds.apiKey?.slice(0, 10) || 'ACTIVE_ALGO_OPERATOR';
+    const isDemo = !creds.apiKey || creds.apiKey.toLowerCase() === 'demo' || creds.apiKey.includes('_live_key_');
+
+    if (brokerId === 'DHAN' && !isDemo && creds.apiSecret) {
+      const profileRes = await fetch('/api/dhan/profile', {
+        method: 'POST',
+        headers: {
+          'access-token': creds.apiSecret.trim(),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const profileData = await profileRes.json().catch(() => ({}));
+      if (!profileRes.ok) {
+        throw new Error(profileData?.errorMessage || profileData?.error || `DhanHQ Auth Failed (${profileRes.status})`);
+      }
+      // Pull initial live Dhan market feed immediately
+      dhanService.fetchLastAvailableClosingPricesViaRest().catch(() => {});
+      const latency = Math.round(performance.now() - start);
+      return {
+        success: true,
+        profile: {
+          name: profileData.dhanClientId ? `DhanHQ Live (${profileData.dhanClientId})` : 'DhanHQ Live Bridge',
+          email: `${(profileData.dhanClientId || identifier).toLowerCase()}@dhan.co`,
+          client_id: profileData.dhanClientId || creds.apiKey,
+          userType: profileData.activeSegment || 'LIVE_TRADER',
+          broker: 'DHAN',
+        },
+        latencyMs: latency,
+      };
+    }
+
+    await new Promise(r => setTimeout(r, 450));
+    const latency = Math.round(performance.now() - start);
 
     const profile: BrokerProfile = {
       name: `${brokerMeta.name} Algo Bridge`,

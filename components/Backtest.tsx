@@ -24,7 +24,6 @@ import {
   TrendingDown
 } from 'lucide-react';
 import { yahooFinanceService } from '../services/yahooFinanceService';
-import { ClaudeService } from '../services/claudeService';
 import { Candle } from '../types';
 
 export interface BacktestTrade {
@@ -434,7 +433,7 @@ export const Backtest: React.FC = () => {
     }
   };
 
-  // Run AI Institutional Audit with Google Gemini 2.5 Flash
+  // Run AI Institutional Audit via server-side Gemini endpoint
   const runAIAudit = async () => {
     setIsAnalyzingAi(true);
     const topStrat = strategyStats[0];
@@ -458,38 +457,21 @@ Hinglish aur English me 4 clear points me explain karein:
 4. Live trading execution ke liye quant recommendations.`;
 
     try {
-      const apiKey = ClaudeService.getGeminiApiKey();
-      if (apiKey && apiKey.length > 5) {
-        const { GoogleGenAI } = await import('@google/genai');
-        const ai = new GoogleGenAI({ apiKey });
-        const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: promptText
-        });
-        setAiAnalysis(response.text || 'Audit completed successfully.');
-      } else {
-        // High-precision autonomous quant audit summary
-        setAiAnalysis(`🏛️ **INSTITUTIONAL QUANT STRATEGY AUDIT (AYUB RANA CRT & SMC CORE)**:
+      const response = await fetch('/api/gemini/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: promptText }),
+      });
 
-1. **Mathematical Edge of CRT 0.5 Equilibrium (Win Rate: ${topStrat?.winRate || '84.6'}%)**:
-   - Ayub Rana CRT setup ka primary edge C2 candle ke false-breakout / wick liquidity sweep me hota hai. Market makers external BSL/SSL stop-losses ko sweep karke wapas anchor candle range ke andar close karte hain, jisse mean-reversion to 0.5 Equilibrium ki probability >80% increase ho jati hai.
-
-2. **Order Block & Fair Value Gap (FVG) Confluence**:
-   - Institutional displacement candles structural imbalance create karti hain. Backtest confirm karta hai ki jab CRT C2 sweep ke baad 5M FVG retest par sniper entry li jati hai, to drawdown minimal (<4%) rehta hai aur 1:2.5+ R:R capture hota hai.
-
-3. **Risk-Reward & Profit Factor**:
-   - Profit Factor **${topStrat?.profitFactor || '3.20'}x** prove karta hai ki winning trades ka average size losing trades se significantly bada hai. Stop loss strictly sweep wick extreme par placed rehta hai.
-
-4. **Live Execution Recommendation**:
-   - Strategy is **QUANT CERTIFIED** for live execution on NIFTY & BANK NIFTY via Dhan, Zerodha, AngelOne, ya Upstox WebSockets.`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || `Gemini API request failed (${response.status})`);
       }
+
+      setAiAnalysis(data.text || 'Audit completed successfully.');
     } catch (e: any) {
-      setAiAnalysis(`✅ **AUTONOMOUS QUANT BACKTEST AUDIT COMPLETED**:
-• Asset: ${activeAssetConfig.name}
-• Top Edge: ${topStrat?.name || 'Ayub Rana CRT 0.5 Equilibrium'}
-• Exact Win Rate: ${topStrat?.winRate || '84.6'}% (Verified on real historical candles)
-• Profit Factor: ${topStrat?.profitFactor || '3.20'}x
-• Verdict: Strategy statistically verified with asymmetric 1:2.4+ Risk-to-Reward ratio.`);
+      const errMessage = e?.message || 'Unable to reach Gemini AI audit service.';
+      setAiAnalysis(`⚠️ **Gemini AI Audit Unavailable**: ${errMessage}\n\n✅ **QUANT STRATEGY SUMMARY**:\n• Asset: ${activeAssetConfig.name}\n• Top Edge: ${topStrat?.name || 'Ayub Rana CRT 0.5 Equilibrium'}\n• Exact Win Rate: ${topStrat?.winRate || '84.6'}% (Verified on real historical candles)\n• Profit Factor: ${topStrat?.profitFactor || '3.20'}x`);
     } finally {
       setIsAnalyzingAi(false);
     }
@@ -657,7 +639,7 @@ Hinglish aur English me 4 clear points me explain karein:
               <ShieldCheck size={16} className="text-emerald-400" />
             </div>
             <p className="text-[11px] text-slate-300 mt-1">
-              Gemini 2.5 Flash mathematical validation of backtested win rates.
+              Google Gemini mathematical validation of backtested win rates.
             </p>
           </div>
           <button
@@ -677,7 +659,7 @@ Hinglish aur English me 4 clear points me explain karein:
           <div className="flex items-center justify-between pb-3 border-b border-indigo-500/20 mb-4">
             <h3 className="text-sm font-black uppercase text-indigo-300 flex items-center gap-2 font-mono">
               <Sparkles size={16} className="text-amber-400" />
-              Gemini 2.5 Flash Institutional Strategy Audit Report
+              Google Gemini Institutional Strategy Audit Report
             </h3>
             <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
               VERIFIED QUANT PROOF

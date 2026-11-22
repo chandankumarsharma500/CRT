@@ -1,5 +1,6 @@
 import { UpstoxConfig, BrokerProfile, BrokerHolding, OrderRequest, WebSocketState, BrokerClosingPrice, UpstoxClosingPrice, IndexMarketData, Trend, UnifiedBrokerService, BrokerId } from '../types';
 import { ALL_INDICES } from './dhanService';
+import { yahooFinanceService } from './yahooFinanceService';
 
 // Mapping Indian Indices to official Upstox Instrument Keys
 export const UPSTOX_INSTRUMENT_MAP: Record<string, string> = {
@@ -470,20 +471,24 @@ class UpstoxApiService implements UnifiedBrokerService {
     const isDemo = this.config?.apiKey.toUpperCase() === 'DEMO';
 
     if (isDemo || !this.config?.accessToken) {
-      // In Demo or offline mode, simulate realistic ticks around the last closing price
       for (const [id, baseClose] of Object.entries(BASELINE_CLOSES)) {
+        const yQuote = yahooFinanceService.getQuote(id);
         const prev = this.closingPrices[id] || { lastClose: baseClose, lastPrice: baseClose };
-        const price = prev.lastPrice + (Math.random() - 0.49) * (baseClose * 0.0008);
+        const effectiveClose = yQuote?.previousClose || prev.lastClose || baseClose;
+        const price = yQuote?.price || prev.lastPrice || effectiveClose;
+        const change = yQuote ? yQuote.change : Number((price - effectiveClose).toFixed(2));
+        const percentChange = yQuote ? yQuote.changePercent : (effectiveClose > 0 ? Number(((change / effectiveClose) * 100).toFixed(2)) : 0);
+
         this.closingPrices[id] = {
           instrumentKey: UPSTOX_INSTRUMENT_MAP[id] || id,
           symbol: id.toUpperCase(),
           name: id.toUpperCase(),
-          lastClose: baseClose,
+          lastClose: effectiveClose,
           lastPrice: Math.round(price * 100) / 100,
           timestamp: Date.now(),
           source: 'REST_FALLBACK_CACHE',
-          change: price - baseClose,
-          percentChange: ((price - baseClose) / baseClose) * 100
+          change,
+          percentChange
         };
       }
       this.saveCachedClosingPrices();
@@ -603,20 +608,23 @@ class UpstoxApiService implements UnifiedBrokerService {
     const isConfig = this.isConfigured();
 
     const dataSourceName = !isConfig
-      ? 'Upstox (Demo Simulated)'
+      ? 'Yahoo Finance (Live Market)'
       : isConnected
         ? 'Upstox WebSocket (Live)'
         : this.corsBlocked
-          ? 'Upstox REST (CORS Cache Fallback)'
-          : 'Upstox REST (Last Close Fallback)';
+          ? 'Upstox REST / Yahoo Finance'
+          : 'Upstox REST / Yahoo Finance';
 
     return ALL_INDICES.map(index => {
       const quote = this.closingPrices[index.id];
-      const baseClose = BASELINE_CLOSES[index.id] || 24800;
-      const lastClose = quote?.lastClose || baseClose;
-      const price = quote?.lastPrice || lastClose;
-      const change = quote?.change ?? (price - lastClose);
-      const percentChange = quote?.percentChange ?? (lastClose > 0 ? (change / lastClose) * 100 : 0);
+      const yQuote = yahooFinanceService.getQuote(index.id);
+      const hasLiveBrokerQuote = isConfig && quote && (quote.source === 'WEBSOCKET' || quote.source === 'REST_API');
+
+      const baseClose = BASELINE_CLOSES[index.id] || 25800;
+      const lastClose = hasLiveBrokerQuote ? (quote.lastClose || baseClose) : (yQuote?.previousClose || quote?.lastClose || baseClose);
+      const price = hasLiveBrokerQuote ? (quote.lastPrice || lastClose) : (yQuote?.price || quote?.lastPrice || lastClose);
+      const change = hasLiveBrokerQuote ? (quote.change ?? (price - lastClose)) : (yQuote?.change ?? (price - lastClose));
+      const percentChange = hasLiveBrokerQuote ? (quote.percentChange ?? (lastClose > 0 ? (change / lastClose) * 100 : 0)) : (yQuote?.changePercent ?? (lastClose > 0 ? (change / lastClose) * 100 : 0));
 
       // Calculate Option Greeks & Vega Metrics with respect to the last available closing price
       const diffFromClose = price - lastClose;
@@ -633,7 +641,7 @@ class UpstoxApiService implements UnifiedBrokerService {
         putVega,
         difference,
         trend: (difference < 0 ? 'Bullish' : 'Bearish') as Trend,
-        source: dataSourceName
+        source: hasLiveBrokerQuote ? dataSourceName : (yQuote ? 'Yahoo Finance (Live Market)' : dataSourceName)
       };
     });
   }

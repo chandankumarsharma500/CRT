@@ -17,6 +17,7 @@ import {
 import { twelveDataService } from './twelveDataService';
 import { mobileBackendService } from './mobileBackendService';
 import { yahooFinanceService } from './yahooFinanceService';
+import { marketHoursService } from './marketHoursService';
 
 export const ALL_INDICES: IndexDefinition[] = [
   { id: "nifty", symbol: "NIFTY", exchange: "NSE", name: "NIFTY 50" },
@@ -93,12 +94,28 @@ class DhanApiService implements UnifiedBrokerService {
   }
 
   private loadPersistedConfig() {
-    const saved = localStorage.getItem(this.CONFIG_KEY);
+    const saved = localStorage.getItem(this.CONFIG_KEY) || localStorage.getItem('dhan_config');
     if (saved) {
       try {
         this.config = JSON.parse(saved);
       } catch (e) {
         console.error("Failed to parse saved dhan config", e);
+      }
+    }
+    if (!this.config) {
+      const credsStr = localStorage.getItem('broker_creds_DHAN');
+      if (credsStr) {
+        try {
+          const parsed = JSON.parse(credsStr);
+          if (parsed.apiKey || parsed.apiSecret) {
+            this.config = {
+              clientId: (parsed.apiKey || '').trim(),
+              accessToken: (parsed.apiSecret || '').trim(),
+              environment: 'PRODUCTION',
+              redirectUri: this.getDefaultRedirectUri(),
+            };
+          }
+        } catch (_e) {}
       }
     }
   }
@@ -144,9 +161,14 @@ class DhanApiService implements UnifiedBrokerService {
     };
     localStorage.setItem(this.CONFIG_KEY, JSON.stringify(this.config));
 
-    if (this.config.accessToken && this.config.clientId) {
+    if (this.config.accessToken && this.config.clientId && !this.isDemoCredentials()) {
       this.connectWebSocket();
     }
+  }
+
+  private isDemoCredentials(): boolean {
+    const cid = (this.config?.clientId || '').toLowerCase();
+    return !this.config?.accessToken || cid === 'demo' || cid.includes('_live_key_');
   }
 
   clearConfig() {
@@ -156,11 +178,17 @@ class DhanApiService implements UnifiedBrokerService {
   }
 
   getConfig(): DhanConfig | null {
+    if (!this.config) this.loadPersistedConfig();
     return this.config;
   }
 
+  getLatestQuotesSnapshot(): Record<string, BrokerClosingPrice> {
+    return { ...this.closingPrices };
+  }
+
   isConfigured(): boolean {
-    return !!(this.config && this.config.clientId && (this.config.accessToken || this.config.clientId.length > 2));
+    const cfg = this.getConfig();
+    return !!(cfg && cfg.clientId && (cfg.accessToken || cfg.clientId.length > 2));
   }
 
   // --- Dynamic Redirect URI & OAuth Dialog Helpers ---
@@ -391,22 +419,28 @@ class DhanApiService implements UnifiedBrokerService {
   // --- REST API: Fetch Last Available Closing Prices & LTP ---
 
   async fetchLastAvailableClosingPricesViaRest(): Promise<Record<string, BrokerClosingPrice>> {
-    const isDemo = this.config?.clientId?.toUpperCase() === 'DEMO';
+    this.getConfig();
+    const isDemo = this.isDemoCredentials();
 
     if (isDemo || !this.config?.accessToken) {
       for (const [id, baseClose] of Object.entries(BASELINE_CLOSES)) {
+        const yQuote = yahooFinanceService.getQuote(id);
         const prev = this.closingPrices[id] || { lastClose: baseClose, lastPrice: baseClose };
-        const price = prev.lastPrice + (Math.random() - 0.49) * (baseClose * 0.0008);
+        const effectiveClose = yQuote?.previousClose || prev.lastClose || baseClose;
+        const price = yQuote?.price || prev.lastPrice || effectiveClose;
+        const change = yQuote ? yQuote.change : Number((price - effectiveClose).toFixed(2));
+        const percentChange = yQuote ? yQuote.changePercent : (effectiveClose > 0 ? Number(((change / effectiveClose) * 100).toFixed(2)) : 0);
+
         this.closingPrices[id] = {
           instrumentKey: DHAN_SECURITY_MAP[id]?.secId || id,
           symbol: id.toUpperCase(),
           name: id.toUpperCase(),
-          lastClose: baseClose,
+          lastClose: effectiveClose,
           lastPrice: Math.round(price * 100) / 100,
           timestamp: Date.now(),
           source: 'REST_FALLBACK_CACHE',
-          change: price - baseClose,
-          percentChange: ((price - baseClose) / baseClose) * 100
+          change,
+          percentChange
         };
       }
       this.saveCachedClosingPrices();
@@ -415,8 +449,8 @@ class DhanApiService implements UnifiedBrokerService {
     }
 
     try {
-      // Query Dhan REST quote API for current LTP and Last Closing price
-      const response = await this.safeFetch(`${this.baseUrl}/marketfeed/ltp`, {
+      // Route DhanHQ v2 Market Feed OHLC call through our server-side bridge (CORS-free)
+      const response = await fetch('/api/dhan/marketfeed', {
         method: 'POST',
         headers: {
           'access-token': this.config.accessToken,
@@ -424,23 +458,39 @@ class DhanApiService implements UnifiedBrokerService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          IDX_I: Object.values(DHAN_SECURITY_MAP).filter(x => x.segment === 'IDX_I').map(x => x.secId),
-          IDX_B: Object.values(DHAN_SECURITY_MAP).filter(x => x.segment === 'IDX_B').map(x => x.secId)
+          mode: 'ohlc',
+          instruments: {
+            IDX_I: Object.values(DHAN_SECURITY_MAP)
+              .filter(x => x.segment === 'IDX_I')
+              .map(x => Number(x.secId)),
+            IDX_B: Object.values(DHAN_SECURITY_MAP)
+              .filter(x => x.segment === 'IDX_B')
+              .map(x => Number(x.secId))
+          }
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Dhan REST Error: ${response.status} ${response.statusText}`);
+        const errPayload = await response.json().catch(() => ({}));
+        throw new Error(errPayload?.error || errPayload?.internalErrorMessage || `Dhan REST Error: ${response.status} ${response.statusText}`);
       }
 
       const json = await response.json();
       const data = json.data || {};
+      this.corsBlocked = false;
 
       for (const [indexId, item] of Object.entries(DHAN_SECURITY_MAP)) {
-        const secQuote = data[item.secId] || data[item.segment]?.[item.secId];
+        const secQuote =
+          data[item.segment]?.[item.secId] ||
+          data[item.segment]?.[Number(item.secId)] ||
+          data[item.secId] ||
+          data.IDX_I?.[item.secId];
+        if (!secQuote) continue;
+
         const baseClose = BASELINE_CLOSES[indexId] || 24800;
-        const lastClose = secQuote?.close || secQuote?.last_close || baseClose;
-        const lastPrice = secQuote?.last_price || lastClose;
+        const ohlc = secQuote.ohlc || {};
+        const lastClose = Number(ohlc.close || secQuote.close || secQuote.last_close || baseClose);
+        const lastPrice = Number(secQuote.last_price || lastClose);
 
         this.closingPrices[indexId] = {
           instrumentKey: item.secId,
@@ -450,8 +500,8 @@ class DhanApiService implements UnifiedBrokerService {
           lastPrice,
           timestamp: Date.now(),
           source: 'REST_API',
-          change: lastPrice - lastClose,
-          percentChange: lastClose > 0 ? ((lastPrice - lastClose) / lastClose) * 100 : 0
+          change: Number((lastPrice - lastClose).toFixed(2)),
+          percentChange: lastClose > 0 ? Number((((lastPrice - lastClose) / lastClose) * 100).toFixed(2)) : 0
         };
       }
 
@@ -514,26 +564,27 @@ class DhanApiService implements UnifiedBrokerService {
       await this.fetchLastAvailableClosingPricesViaRest();
     }
 
-    const isConnected = this.wsState === 'CONNECTED';
-    const isConfig = this.isConfigured();
+    const isConnected = this.wsState === 'CONNECTED' && !this.isDemoCredentials();
+    const isConfig = this.isConfigured() && !this.isDemoCredentials();
 
     const dataSourceName = !isConfig
-      ? 'Dhan HQ (Demo Simulated)'
+      ? 'Yahoo Finance (Live Market)'
       : isConnected
         ? 'Dhan WebSocket (Live Stream)'
         : this.corsBlocked
-          ? 'Dhan REST (CORS Cache Fallback)'
-          : 'Dhan REST (Last Close Fallback)';
+          ? 'Dhan REST / Yahoo Finance Sync'
+          : 'Dhan REST / Yahoo Finance';
 
     return ALL_INDICES.map(index => {
       const quote = this.closingPrices[index.id];
-      const baseClose = BASELINE_CLOSES[index.id] || 24800;
-      const lastClose = quote?.lastClose || baseClose;
-      
       const yQuote = yahooFinanceService.getQuote(index.id);
-      const price = (!isConfig && yQuote) ? yQuote.price : (quote?.lastPrice || lastClose);
-      const change = (!isConfig && yQuote) ? yQuote.change : (quote?.change ?? (price - lastClose));
-      const percentChange = (!isConfig && yQuote) ? yQuote.changePercent : (quote?.percentChange ?? (lastClose > 0 ? (change / lastClose) * 100 : 0));
+      const hasLiveBrokerQuote = isConfig && quote && (quote.source === 'WEBSOCKET' || quote.source === 'REST_API');
+
+      const baseClose = BASELINE_CLOSES[index.id] || 25800;
+      const lastClose = hasLiveBrokerQuote ? (quote.lastClose || baseClose) : (yQuote?.previousClose || quote?.lastClose || baseClose);
+      const price = hasLiveBrokerQuote ? (quote.lastPrice || lastClose) : (yQuote?.price || quote?.lastPrice || lastClose);
+      const change = hasLiveBrokerQuote ? (quote.change ?? (price - lastClose)) : (yQuote?.change ?? (price - lastClose));
+      const percentChange = hasLiveBrokerQuote ? (quote.percentChange ?? (lastClose > 0 ? (change / lastClose) * 100 : 0)) : (yQuote?.changePercent ?? (lastClose > 0 ? (change / lastClose) * 100 : 0));
 
       const diffFromClose = price - lastClose;
       const callVega = Math.max(-200, Math.min(1000, 360 + diffFromClose * 3.6));
@@ -549,7 +600,7 @@ class DhanApiService implements UnifiedBrokerService {
         putVega,
         difference,
         trend: (difference < 0 ? 'Bullish' : 'Bearish') as Trend,
-        source: dataSourceName
+        source: hasLiveBrokerQuote ? dataSourceName : (yQuote ? 'Yahoo Finance (Live Market)' : dataSourceName)
       };
     });
   }
@@ -557,24 +608,81 @@ class DhanApiService implements UnifiedBrokerService {
   // --- Profile, Holdings & Order Execution ---
 
   async getProfile(): Promise<BrokerProfile> {
-    if (!this.config) throw new Error("Dhan API not configured");
+    const cfg = this.getConfig();
+    if (!cfg) throw new Error("Dhan API not configured");
+    if (!this.isDemoCredentials() && cfg.accessToken) {
+      try {
+        const res = await fetch('/api/dhan/profile', {
+          method: 'POST',
+          headers: {
+            'access-token': cfg.accessToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            name: data.dhanClientId ? `DhanHQ (${data.dhanClientId})` : 'Dhan HQ Live',
+            email: `${(data.dhanClientId || cfg.clientId).toLowerCase()}@dhan.co`,
+            client_id: data.dhanClientId || cfg.clientId,
+            userType: data.activeSegment || 'INSTITUTIONAL',
+            broker: 'DHAN',
+          };
+        }
+      } catch (_e) {}
+    }
     return {
       name: "Dhan Institutional Alpha",
-      email: `${this.config.clientId.toLowerCase()}@dhan.trader`,
-      client_id: this.config.clientId,
+      email: `${cfg.clientId.toLowerCase()}@dhan.trader`,
+      client_id: cfg.clientId,
       userType: "INSTITUTIONAL",
       broker: "DHAN"
     };
   }
 
   async getHoldings(): Promise<BrokerHolding[]> {
-    if (!this.config) throw new Error("Dhan API not configured");
+    const cfg = this.getConfig();
+    if (!cfg) throw new Error("Dhan API not configured");
+    if (!this.isDemoCredentials() && cfg.accessToken) {
+      try {
+        const res = await fetch('/api/dhan/holdings', {
+          method: 'POST',
+          headers: {
+            'access-token': cfg.accessToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) return data;
+        }
+      } catch (_e) {}
+    }
     return [];
   }
 
   async placeOrder(order: OrderRequest): Promise<any> {
+    const cfg = this.getConfig();
     if (mobileBackendService.isEnabled()) {
       return await mobileBackendService.placeOrderViaCloud('DHAN', order);
+    }
+    if (cfg && !this.isDemoCredentials() && cfg.accessToken) {
+      const res = await fetch('/api/dhan/orders', {
+        method: 'POST',
+        headers: {
+          'access-token': cfg.accessToken,
+          'client-id': cfg.clientId,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ order }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || data?.internalErrorMessage || `Dhan Order Error (${res.status})`);
+      }
+      return data;
     }
     return {
       orderId: `DHAN-${Date.now()}`,

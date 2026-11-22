@@ -1,5 +1,4 @@
-import { MarketDataPoint, TradingSignal } from '../types';
-import { GoogleGenAI, Type } from "@google/genai";
+import { MarketDataPoint } from '../types';
 import { ClaudeService } from './claudeService';
 import { yahooFinanceService } from './yahooFinanceService';
 
@@ -31,15 +30,11 @@ export class AILogic {
     private static marketCache: AnalysisCache | null = null;
     private static CACHE_TTL = 30000; 
 
-    public static getSafeApiKey(): string {
-        return ClaudeService.getGeminiApiKey();
-    }
-
     public static getClaudeKey(): string {
         return ClaudeService.getClaudeApiKey();
     }
 
-    public static generateAutonomousCRTAnswer(question: string, data?: MarketDataPoint): string {
+    public static generateAutonomousCRTAnswer(question: string, _data?: MarketDataPoint): string {
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
         return ClaudeService.generateAutonomousCRTSolution(question, nifty);
@@ -49,10 +44,68 @@ export class AILogic {
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
 
-        // Try Claude Service processQuery (Claude -> Gemini -> Autonomous Ayub Rana CRT)
+        // If user has configured a personal Claude API key, use ClaudeService first
+        if (ClaudeService.getClaudeApiKey()) {
+            try {
+                const resp = await ClaudeService.processQuery(question, nifty);
+                yield resp.text;
+                return;
+            } catch (e) {
+                console.warn("Claude API failed, falling back to server Gemini stream:", e);
+            }
+        }
+
+        // Stream via server-side Gemini SSE endpoint
         try {
-            const resp = await ClaudeService.processQuery(question, nifty);
-            yield resp.text;
+            const response = await fetch('/api/gemini/stream', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: `You are Trading Assistant & Ayub Rana CRT Expert.
+Live Yahoo Finance Market: ${nifty?.name || 'NIFTY'} @ ₹${nifty?.price || 24865} | Vega Delta: ${data.difference.toFixed(0)} | Trend: ${data.trend}.
+User request: ${question}
+Reply in crisp Hinglish following Ayub Rana CRT PDF rules (C1 Anchor, C2 Sweep + Close Back Inside, C3 M5 MSS, 0.5 EQ TP1, Target 2). Give exact numbers.`,
+                }),
+            });
+
+            if (!response.ok || !response.body) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData?.error || `Stream error (${response.status})`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+            let yieldedAny = false;
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+
+                const lines = buffer.split('\n');
+                buffer = lines.pop() ?? '';
+
+                for (const rawLine of lines) {
+                    const line = rawLine.trim();
+                    if (!line.startsWith('data:')) continue;
+                    const payload = line.slice(5).trim();
+                    if (!payload || payload === '[DONE]') continue;
+
+                    const parsed = JSON.parse(payload);
+                    if (parsed.error) {
+                        throw new Error(parsed.error);
+                    }
+                    if (parsed.text) {
+                        yieldedAny = true;
+                        yield parsed.text;
+                    }
+                }
+            }
+
+            if (!yieldedAny) {
+                yield ClaudeService.generateAutonomousCRTSolution(question, nifty);
+            }
             return;
         } catch (e) {
             console.warn("AI Logic stream failed, using Autonomous CRT Engine:", e);
@@ -67,37 +120,38 @@ export class AILogic {
 
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
-        const ltp = nifty?.price || 23660.65;
+        const ltp = nifty?.price || 25800.60;
         const change = nifty?.change || 77.4;
         const isBullish = change >= 0;
 
-        const apiKey = this.getSafeApiKey();
-        if (!apiKey) return this.getLocalAnalysis(data);
-
         try {
-            const ai = new GoogleGenAI({ apiKey });
-            const resp = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `INSTANT AUDIT: Nifty LTP ${ltp}, Vega Delta ${data.difference.toFixed(0)}, Trend ${data.trend}. Return JSON. Clear conviction required.`,
-                config: { 
+            const resp = await fetch('/api/gemini/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: `INSTANT AUDIT: Nifty LTP ${ltp}, Vega Delta ${data.difference.toFixed(0)}, Trend ${data.trend}. Return JSON. Clear conviction required.`,
                     responseMimeType: "application/json",
                     responseSchema: {
-                        type: Type.OBJECT,
+                        type: "OBJECT",
                         properties: {
-                            prediction: { type: Type.STRING },
-                            confidence: { type: Type.NUMBER },
-                            summary: { type: Type.STRING },
-                            reasoning: { type: Type.STRING },
-                            suggestedAction: { type: Type.STRING }
+                            prediction: { type: "STRING" },
+                            confidence: { type: "NUMBER" },
+                            summary: { type: "STRING" },
+                            reasoning: { type: "STRING" },
+                            suggestedAction: { type: "STRING" }
                         },
                         required: ["prediction", "confidence", "summary", "reasoning", "suggestedAction"]
                     }
-                }
+                })
             });
-            const result = JSON.parse(resp.text || "{}");
+            if (!resp.ok) {
+                throw new Error(`Server returned ${resp.status}`);
+            }
+            const json = await resp.json();
+            const result = JSON.parse(json.text || "{}");
             const final = { ...result, source: 'GEMINI', prediction: (result.prediction || (isBullish ? 'BULLISH' : 'BEARISH')).toUpperCase() };
-            this.marketCache = { timestamp: Date.now(), vega: data.difference, result: final as any };
-            return final as any;
+            this.marketCache = { timestamp: Date.now(), vega: data.difference, result: final as AIAnalysisResult };
+            return final as AIAnalysisResult;
         } catch (e) {
             return this.getLocalAnalysis(data);
         }
@@ -106,47 +160,48 @@ export class AILogic {
     static async generateScalpAnalysis(data: MarketDataPoint, price: number): Promise<AIAnalysisResult> {
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
-        const currentPrice = price || nifty?.price || 23660.65;
-
-        const apiKey = this.getSafeApiKey();
-        if (!apiKey) return this.getLocalAnalysis(data);
+        const currentPrice = price || nifty?.price || 25800.60;
 
         if (this.scalpCache && Math.abs(this.scalpCache.vega - data.difference) < 20) {
             return { ...this.scalpCache.result, source: 'CACHE' };
         }
 
         try {
-            const ai = new GoogleGenAI({ apiKey });
-            const resp = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: `5M SCALP AUDIT: Price ${currentPrice}, Vega ${data.difference.toFixed(0)}. Ayub Rana CRT Institutional Divergence analysis required. JSON ONLY.`,
-                config: { 
+            const resp = await fetch('/api/gemini/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: `5M SCALP AUDIT: Price ${currentPrice}, Vega ${data.difference.toFixed(0)}. Ayub Rana CRT Institutional Divergence analysis required. JSON ONLY.`,
                     responseMimeType: "application/json",
                     responseSchema: {
-                        type: Type.OBJECT,
+                        type: "OBJECT",
                         properties: {
-                            prediction: { type: Type.STRING },
-                            confidence: { type: Type.NUMBER },
-                            summary: { type: Type.STRING },
+                            prediction: { type: "STRING" },
+                            confidence: { type: "NUMBER" },
+                            summary: { type: "STRING" },
                             scalpSetup: {
-                                type: Type.OBJECT,
+                                type: "OBJECT",
                                 properties: {
-                                    entry: { type: Type.STRING },
-                                    sl: { type: Type.STRING },
-                                    target: { type: Type.STRING },
-                                    logic: { type: Type.STRING }
+                                    entry: { type: "STRING" },
+                                    sl: { type: "STRING" },
+                                    target: { type: "STRING" },
+                                    logic: { type: "STRING" }
                                 },
                                 required: ["entry", "sl", "target", "logic"]
                             }
                         },
                         required: ["prediction", "confidence", "summary", "scalpSetup"]
                     }
-                }
+                })
             });
-            const result = JSON.parse(resp.text || "{}");
+            if (!resp.ok) {
+                throw new Error(`Server returned ${resp.status}`);
+            }
+            const json = await resp.json();
+            const result = JSON.parse(json.text || "{}");
             const final = { ...result, source: 'GEMINI', reasoning: "Neural Scalp Logic Verified with Ayub Rana CRT rules." };
-            this.scalpCache = { timestamp: Date.now(), vega: data.difference, result: final as any };
-            return final as any;
+            this.scalpCache = { timestamp: Date.now(), vega: data.difference, result: final as AIAnalysisResult };
+            return final as AIAnalysisResult;
         } catch (e) {
             return this.getLocalAnalysis(data);
         }
@@ -155,7 +210,7 @@ export class AILogic {
     static getLocalAnalysis(data: MarketDataPoint): AIAnalysisResult {
         const quotes = yahooFinanceService.getCachedQuotes();
         const nifty = quotes['nifty'];
-        const ltp = nifty?.price || 23660.65;
+        const ltp = nifty?.price || 25800.60;
         const isBullish = (nifty?.change || 0) >= 0 || data.trend === 'Bullish';
         const strikeRound = Math.round(ltp / 50) * 50;
 

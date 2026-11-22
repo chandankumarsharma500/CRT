@@ -20,7 +20,7 @@ import {
 const wireBrokerFeedToGlobalStream = (service: UnifiedBrokerService) => {
   service.subscribe((quotes) => {
     Object.entries(quotes).forEach(([id, q]) => {
-      if (q && q.lastPrice > 0) {
+      if (q && q.lastPrice > 0 && (q.source === 'WEBSOCKET' || q.source === 'REST_API')) {
         yahooFinanceService.injectBrokerQuote(id, {
           price: q.lastPrice,
           name: q.name || id.toUpperCase(),
@@ -74,9 +74,9 @@ export const getBrokerService = (requestedId?: BrokerId): UnifiedBrokerService =
 
     fetchIndicesMarketData: async (): Promise<IndexMarketData[]> => {
       const raw = await dhanService.fetchIndicesMarketData();
-      const sourceName = isConfig 
-        ? `${brokerMeta.name} API Feed` 
-        : `${brokerMeta.name} (Simulated Feed)`;
+      const sourceName = isConfig
+        ? `${brokerMeta.name} API Feed`
+        : 'Yahoo Finance (Live Market)';
       return raw.map(i => ({ ...i, source: sourceName }));
     },
 

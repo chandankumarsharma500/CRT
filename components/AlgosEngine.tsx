@@ -250,7 +250,6 @@ export const AlgosEngine: React.FC = () => {
   const [isClaudeThinking, setIsClaudeThinking] = useState<boolean>(false);
   const [showClaudeKeyModal, setShowClaudeKeyModal] = useState<boolean>(false);
   const [claudeApiKeyInput, setClaudeApiKeyInput] = useState<string>(() => ClaudeService.getClaudeApiKey());
-  const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>(() => ClaudeService.getGeminiApiKey());
   const [copiedPayload, setCopiedPayload] = useState<boolean>(false);
   const claudeChatEndRef = useRef<HTMLDivElement>(null);
 
@@ -380,7 +379,7 @@ export const AlgosEngine: React.FC = () => {
 
           const chosenStrat = activeStrats[Math.floor(Math.random() * activeStrats.length)];
           const niftyQ = yahooQuotes['nifty'];
-          const ltp = niftyQ?.price || 22780.25;
+          const ltp = niftyQ?.price || 25800.60;
           const strike = Math.round(ltp / 50) * 50;
           const isCall = (niftyQ?.change ?? 0) >= 0 || Math.random() > 0.4;
           const optSymbol = `NIFTY ${isCall ? strike + 50 : strike - 50} ${isCall ? 'CE' : 'PE'}`;
@@ -884,75 +883,51 @@ export const AlgosEngine: React.FC = () => {
               {copiedPayload ? 'Copied Context' : 'Copy for Claude'}
             </button>
 
-            {/* Claude & Gemini API Key config */}
+            {/* Claude API Key config */}
             <button
               onClick={() => setShowClaudeKeyModal(!showClaudeKeyModal)}
               className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl text-xs font-bold transition-all"
-              title="Configure Gemini & Claude API Keys (Optional)"
+              title="Configure Anthropic Claude API Key (Optional)"
             >
               <Key size={16} />
             </button>
           </div>
         </div>
 
-        {/* API Key Drawer (Optional) */}
+        {/* Claude API Key Drawer (Optional) */}
         {showClaudeKeyModal && (
           <div className="mt-4 p-4 rounded-2xl bg-slate-950/90 border border-purple-500/30 animate-in fade-in duration-200 space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-purple-500/20">
               <div>
                 <h5 className="text-xs font-black uppercase text-purple-300 flex items-center gap-1.5">
                   <Key size={13} />
-                  Google AI Studio (Gemini) & Claude API Keys (Optional)
+                  Anthropic Claude API Key (Optional)
                 </h5>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Enter your Google AI Studio Gemini API Key or Anthropic Claude Key. Agar koi key nahi hai, to hamara Autonomous CRT Engine 100% free offline kaam karta hai!
+                  Optional: Enter your Anthropic Claude Key to prioritize Claude over the built-in server AI &amp; Autonomous CRT Engine.
                 </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono uppercase font-bold text-amber-400">Google AI Studio (Gemini API Key):</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    placeholder="AIzaSy..."
-                    value={geminiApiKeyInput}
-                    onChange={(e) => setGeminiApiKeyInput(e.target.value)}
-                    className="bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
-                  />
-                  <button
-                    onClick={() => {
-                      ClaudeService.setGeminiApiKey(geminiApiKeyInput);
-                      addLog('CLAUDE', 'Google AI Studio Gemini API Key saved.');
-                    }}
-                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono uppercase font-bold text-purple-400">Anthropic Claude API Key:</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="password"
-                    placeholder="sk-ant-api03-..."
-                    value={claudeApiKeyInput}
-                    onChange={(e) => setClaudeApiKeyInput(e.target.value)}
-                    className="bg-slate-900 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
-                  />
-                  <button
-                    onClick={() => {
-                      ClaudeService.setClaudeApiKey(claudeApiKeyInput);
-                      addLog('CLAUDE', 'Claude API Key saved.');
-                    }}
-                    className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
-                  >
-                    Save
-                  </button>
-                </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-mono uppercase font-bold text-purple-400">Anthropic Claude API Key:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="password"
+                  placeholder="sk-ant-api03-..."
+                  value={claudeApiKeyInput}
+                  onChange={(e) => setClaudeApiKeyInput(e.target.value)}
+                  className="bg-slate-900 border border-purple-500/40 rounded-xl px-3 py-1.5 text-xs text-white outline-none w-full font-mono"
+                />
+                <button
+                  onClick={() => {
+                    ClaudeService.setClaudeApiKey(claudeApiKeyInput);
+                    addLog('CLAUDE', 'Claude API Key saved.');
+                  }}
+                  className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shrink-0"
+                >
+                  Save
+                </button>
               </div>
             </div>
           </div>

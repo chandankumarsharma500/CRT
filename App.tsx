@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   LayoutDashboard, BookOpen, BarChart, List, Layers, LogIn, TrendingUp, Menu, X, 
-  Activity, Terminal, Shield, Zap, Moon, Sun, Globe, FlaskConical, Key, AlertCircle, 
-  CheckCircle2, Maximize2, RefreshCw, Bot, ExternalLink, Copy, Check, AlertOctagon,
+  Activity, Terminal, Shield, Zap, Moon, Sun, Globe, FlaskConical, AlertCircle, 
+  Maximize2, RefreshCw, Bot, ExternalLink, Copy, Check, AlertOctagon,
   ChevronRight, Radio, ShieldAlert, Cpu, Sparkles
 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
@@ -28,7 +28,6 @@ type View = 'algos' | 'dashboard' | 'crt' | 'indices' | 'global-pulse' | 'smart-
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('algos');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [aiKeyStatus, setAiKeyStatus] = useState<boolean>(false);
   const [quotes, setQuotes] = useState<Record<string, YahooQuote>>(() => yahooFinanceService.getAllQuotes());
   const [isSyncingYahoo, setIsSyncingYahoo] = useState(false);
   const [executionMode, setExecutionMode] = useState<'PAPER' | 'LIVE'>('LIVE');
@@ -70,35 +69,10 @@ export const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // AI Key check
-  useEffect(() => {
-    const checkKey = async () => {
-      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        setAiKeyStatus(hasKey);
-      }
-    };
-    checkKey();
-    const interval = setInterval(checkKey, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
   const handleManualYahooSync = async () => {
     setIsSyncingYahoo(true);
     await yahooFinanceService.refreshAll();
     setTimeout(() => setIsSyncingYahoo(false), 600);
-  };
-
-  const handleConnectKey = async () => {
-    if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
-      try {
-        await window.aistudio.openSelectKey();
-        setAiKeyStatus(true);
-        setTimeout(() => window.location.reload(), 500);
-      } catch (err) {
-        console.error("Key selection failed", err);
-      }
-    }
   };
 
   const handleLaunchClaudeAi = () => {
@@ -407,24 +381,9 @@ export const App: React.FC = () => {
             ))}
           </div>
 
-          {/* Sidebar Footer: Neural Link & Version */}
-          <div className="p-4 border-t border-black/5 dark:border-white/10 space-y-2">
-            <button
-              onClick={handleConnectKey}
-              className={`w-full flex items-center justify-between p-2.5 rounded font-mono text-[10px] transition-all border ${
-                aiKeyStatus 
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                  : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 text-slate-400 hover:text-cyan-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Key size={13} className={aiKeyStatus ? 'text-emerald-400' : 'text-slate-400'} />
-                <span className="font-bold">{aiKeyStatus ? 'NEURAL KEY LINKED' : 'CONNECT API KEY'}</span>
-              </div>
-              {aiKeyStatus && <CheckCircle2 size={12} className="text-emerald-400" />}
-            </button>
-
-            <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 pt-1">
+          {/* Sidebar Footer: Version */}
+          <div className="p-4 border-t border-black/5 dark:border-white/10">
+            <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
               <span>LATENCY: 8ms</span>
               <span>TERMINAL V5.0</span>
             </div>

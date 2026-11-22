@@ -10,16 +10,3 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
-
-declare namespace NodeJS {
-  interface ProcessEnv {
-    readonly API_KEY: string;
-  }
-}
-
-interface Window {
-  aistudio?: {
-    hasSelectedApiKey?: () => Promise<boolean>;
-    openSelectKey?: () => Promise<void>;
-  };
-}

@@ -2,7 +2,6 @@ import { Candle, SMCZone, TimeFrame, Trend, SMCPatternType, SMCPremiumDiscountMa
 import { ALL_INDICES } from './dhanService';
 import { yahooFinanceService } from './yahooFinanceService';
 import { twelveDataService } from './twelveDataService';
-import { GoogleGenAI } from '@google/genai';
 
 export class SmartMoneyLogic {
   static generateMockCandles(startPrice: number, count: number, volatility: number = 0.02): Candle[] {
@@ -238,25 +237,39 @@ export class SmartMoneyLogic {
       'Lock in 50% profit at Target 1 and trail stop loss to Breakeven immediately'
     ];
 
-    // Attempt Gemini GenAI enhancement if API key is active
+    let finalHindiAdvice = hindiAdvice;
+    let finalEnglishAdvice = englishAdvice;
+
+    // Attempt server-side Gemini GenAI enhancement
     try {
-      const apiKey = process.env.API_KEY;
-      if (apiKey) {
-        const ai = new GoogleGenAI({ apiKey });
-        const prompt = `Refine this institutional SMC trade for ${symbol} at ₹${currentPrice}. Bias: ${bias}. Zone: ${ote.currentZone}. Output concise advice in Hinglish & English under 2 lines each.`;
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: prompt,
-          config: {
-            thinkingConfig: { thinkingBudget: 0 },
-            maxOutputTokens: 250
-          }
-        });
-        if (response.text && response.text.length > 20) {
-          // AI enhancement successful
+      const resp = await fetch('/api/gemini/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: `Refine this institutional SMC trade for ${symbol} at ₹${currentPrice}. Bias: ${bias}. Zone: ${ote.currentZone}. Entry: ₹${exactEntry}, SL: ₹${tightStopLoss}, TP1: ₹${target1}, TP2: ₹${target2}. Return concise JSON with hindiAdvice and englishAdvice under 2 lines each.`,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              hindiAdvice: { type: 'STRING' },
+              englishAdvice: { type: 'STRING' },
+            },
+            required: ['hindiAdvice', 'englishAdvice'],
+          },
+          maxOutputTokens: 350,
+        }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const parsed = JSON.parse(data?.text || '{}');
+        if (parsed?.hindiAdvice && parsed.hindiAdvice.length > 20) {
+          finalHindiAdvice = parsed.hindiAdvice;
+        }
+        if (parsed?.englishAdvice && parsed.englishAdvice.length > 20) {
+          finalEnglishAdvice = parsed.englishAdvice;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       // Graceful fallback to deterministic high-accuracy model
     }
 
@@ -276,8 +289,8 @@ export class SmartMoneyLogic {
       liquiditySwept: isBullishPreference ? 'SSL (Sell-Side Liquidity Pool)' : 'BSL (Buy-Side Liquidity Pool)',
       structureConfluence,
       trapVetoAlert,
-      hindiAdvice,
-      englishAdvice,
+      hindiAdvice: finalHindiAdvice,
+      englishAdvice: finalEnglishAdvice,
       executionChecklist
     };
   }

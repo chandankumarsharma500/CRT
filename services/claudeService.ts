@@ -1,5 +1,5 @@
 import { yahooFinanceService, YahooQuote } from './yahooFinanceService';
-import { GoogleGenAI } from '@google/genai';
+import { dhanService } from './dhanService';
 
 export interface ClaudeAction {
   type: 'SQUARE_OFF' | 'START_ALGOS' | 'PAUSE_ALGOS' | 'EXECUTE_TRADE' | 'TOGGLE_MODE' | 'SET_RISK' | 'NONE';
@@ -37,20 +37,6 @@ export class ClaudeService {
     }
   }
 
-  public static getGeminiApiKey(): string {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('gemini_api_key') || localStorage.getItem('user_gemini_api_key') || localStorage.getItem('google_api_key');
-      if (stored && stored.trim().length > 5) return stored.trim();
-    }
-    return (process.env as any)?.API_KEY || (process.env as any)?.GEMINI_API_KEY || (import.meta as any).env?.VITE_GEMINI_API_KEY || "";
-  }
-
-  public static setGeminiApiKey(key: string): void {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('gemini_api_key', key.trim());
-    }
-  }
-
   /**
    * Generates a complete clipboard payload + direct link to https://claude.ai/
    * allowing user to send live algo context, Yahoo Finance ticks, and CRT PDF rules to Claude.
@@ -65,13 +51,21 @@ export class ClaudeService {
     const nifty = params.quotes['nifty'];
     const bankNifty = params.quotes['bank_nifty'];
     const sensex = params.quotes['sensex'];
+    const dhanQuotes = dhanService.getLatestQuotesSnapshot();
+    const dhanNifty = dhanQuotes['nifty'];
+    const dhanBank = dhanQuotes['bank_nifty'];
+    const dhanActive = dhanService.isConfigured();
 
     const promptPayload = `🎯 **SMC & AYUB RANA CRT ALGO ENGINE CONTEXT FOR CLAUDE.AI / GEMINI**:
 
-📈 **LIVE TRADINGVIEW & YAHOO FINANCE MARKET TICKS**:
-- NIFTY 50: ₹${nifty ? nifty.price.toFixed(2) : '23660.65'} (${nifty ? nifty.changePercent.toFixed(2) : '+0.34'}%) [High: ₹${nifty?.high.toFixed(0) || '23710'} | Low: ₹${nifty?.low.toFixed(0) || '23600'}]
-- BANK NIFTY: ₹${bankNifty ? bankNifty.price.toFixed(2) : '55580.40'} (${bankNifty ? bankNifty.changePercent.toFixed(2) : '+0.26'}%)
-- SENSEX: ₹${sensex ? sensex.price.toFixed(2) : '73895.74'}
+${dhanActive && dhanNifty ? `⚡ **LIVE DHAN HQ BROKER DATA FEED (${dhanNifty.source})**:
+- NIFTY 50 (Dhan): ₹${dhanNifty.lastPrice.toFixed(2)} (Prev Close: ₹${dhanNifty.lastClose.toFixed(2)})
+- BANK NIFTY (Dhan): ₹${dhanBank ? dhanBank.lastPrice.toFixed(2) : 'N/A'}
+
+` : ''}📈 **LIVE YAHOO FINANCE MARKET TICKS**:
+- NIFTY 50: ₹${nifty ? nifty.price.toFixed(2) : '25800.60'} (${nifty ? nifty.changePercent.toFixed(2) : '0.00'}%) [High: ₹${nifty?.high.toFixed(0) || '25850'} | Low: ₹${nifty?.low.toFixed(0) || '25720'}]
+- BANK NIFTY: ₹${bankNifty ? bankNifty.price.toFixed(2) : '64635.20'} (${bankNifty ? bankNifty.changePercent.toFixed(2) : '0.00'}%)
+- SENSEX: ₹${sensex ? sensex.price.toFixed(2) : '83919.71'}
 
 ⚡ **CURRENT ALGO TRADING STATE**:
 - Mode: ${params.executionMode} EXECUTION
@@ -164,8 +158,8 @@ Please analyze current market ticks, scan for optimal Ayub Rana CRT liquidity sw
    */
   public static generateAutonomousCRTSolution(query: string, quote?: YahooQuote): string {
     const q = query.toLowerCase();
-    const ltp = quote?.price || 22780.25;
-    const change = quote?.change || -360.25;
+    const ltp = quote?.price || 25800.60;
+    const change = quote?.change || 0;
     const isBullish = change >= 0;
 
     // HTF Range Boundary Calibrations (Daily / H4)
@@ -180,9 +174,9 @@ Please analyze current market ticks, scan for optimal Ayub Rana CRT liquidity sw
 
 Haanji! Main fully online hoon aur live market data ke sath synchronized hoon:
 • **Instrument**: **${quote?.name || 'NIFTY 50'}**
-• **Current Live Price (TradingView & Yahoo)**: **₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (${change >= 0 ? '+' : ''}${change.toFixed(2)})
+• **Current Live Price (Yahoo Finance)**: **₹${ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}** (${change >= 0 ? '+' : ''}${change.toFixed(2)})
 • **CRT High**: ₹${crtHigh} | **CRT Low**: ₹${crtLow} | **0.5 Equilibrium**: ₹${eq50}
-• **Model**: Google Gemini 2.5 Flash / Claude 3.5 Copilot + Autonomous Ayub Rana CRT Core
+• **Model**: Google Gemini / Claude Copilot + Autonomous Ayub Rana CRT Core
 • **Execution**: Live Broker Routing & Paper Trading Simulator ready.
 
 Aap mujhse koi bhi command de sakte hain:
@@ -269,26 +263,26 @@ Aap mujhse koi bhi command de sakte hain:
    */
   public static async processQuery(query: string, quote?: YahooQuote): Promise<ClaudeResponse> {
     const claudeKey = this.getClaudeApiKey();
-    const geminiKey = this.getGeminiApiKey();
     const action = this.detectActionFromText(query, quote);
+    const dhanQuotes = dhanService.getLatestQuotesSnapshot();
+    const dhanNifty = dhanQuotes['nifty'];
+    const livePrice = (dhanService.isConfigured() && dhanNifty?.source === 'REST_API' ? dhanNifty.lastPrice : quote?.price) || dhanNifty?.lastPrice || 24865;
 
-    // 1. If Anthropic Claude API Key is present, call Claude 3.5 Sonnet / Haiku
+    // 1. If Anthropic Claude API Key is present, call Claude via server proxy with live Dhan + Yahoo context
     if (claudeKey) {
       try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        const response = await fetch('/api/claude/messages', {
           method: 'POST',
           headers: {
             'x-api-key': claudeKey,
-            'anthropic-version': '2023-06-01',
             'content-type': 'application/json',
-            'dangerously-allow-browser': 'true'
           },
           body: JSON.stringify({
             model: 'claude-3-5-sonnet-20241022',
             max_tokens: 700,
-            system: `You are Claude AI Trading Copilot for an Indian stock & options algorithmic trading system.
+            system: `You are Claude AI Trading Copilot for an Indian stock & options algorithmic trading system connected to DhanHQ & live market feeds.
 You specialize in Ayub Rana's Candle Range Theory (CRT) 3-candle model (C1 Anchor Accumulation, C2 Manipulation Sweep with non-negotiable close-back inside, C3 Distribution on 5M MSS).
-Live Yahoo Finance Price for ${quote?.name || 'NIFTY'}: ₹${quote?.price || 24865}.
+Live Price for ${quote?.name || 'NIFTY'}: ₹${livePrice} (Source: ${dhanService.isConfigured() ? 'DhanHQ + Market Feed' : 'Yahoo/TradingView'}).
 Reply in concise, authoritative Hinglish/English with exact Entry, SL, and Target.`,
             messages: [{ role: 'user', content: query }]
           })
@@ -317,21 +311,24 @@ Reply in concise, authoritative Hinglish/English with exact Entry, SL, and Targe
       }
     }
 
-    // 2. If Gemini API Key is present, call Gemini Flash
-    if (geminiKey) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-        const result = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: `You are Claude AI Trading Assistant & Ayub Rana CRT Expert.
+    // 2. Call server-side Gemini API endpoint
+    try {
+      const response = await fetch('/api/gemini/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: `You are Trading Assistant & Ayub Rana CRT Expert.
 Live Yahoo Finance Market: ${quote?.name || 'NIFTY'} @ ₹${quote?.price || 24865}.
 User request: ${query}
 Reply in crisp Hinglish following Ayub Rana CRT PDF rules (C1 Anchor, C2 Sweep + Close Back Inside, C3 M5 MSS, 0.5 EQ TP1, Target 2). Give exact numbers.`,
-          config: { maxOutputTokens: 600 }
-        });
-        if (result.text && result.text.trim().length > 0) {
+          maxOutputTokens: 1024,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data?.text && String(data.text).trim().length > 0) {
           return {
-            text: result.text,
+            text: data.text,
             action,
             source: 'GEMINI_API',
             suggestedPromptForClaudeAiWeb: this.generateClaudeAiContextPayload({
@@ -343,9 +340,12 @@ Reply in crisp Hinglish following Ayub Rana CRT PDF rules (C1 Anchor, C2 Sweep +
             })
           };
         }
-      } catch (e) {
-        console.warn('Gemini AI fallback failed, using autonomous CRT engine:', e);
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        console.warn('Server Gemini API returned error, using autonomous CRT engine:', errData?.error || response.status);
       }
+    } catch (e) {
+      console.warn('Gemini server endpoint failed, using autonomous CRT engine:', e);
     }
 
     // 3. 100% Reliable Autonomous Ayub Rana CRT Engine (Zero errors, instantaneous execution)

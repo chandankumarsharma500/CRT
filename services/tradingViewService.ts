@@ -272,10 +272,4 @@ export const tradingViewService = {
   }
 };
 
-// Start background poll every 4 seconds
-if (typeof window !== 'undefined') {
-  tradingViewService.fetchLiveTradingViewQuotes().catch(() => {});
-  setInterval(() => {
-    tradingViewService.fetchLiveTradingViewQuotes().catch(() => {});
-  }, 4000);
-}
+// Background polling removed — Yahoo Finance (/api/yahoo-quotes) serves as primary live market feed.

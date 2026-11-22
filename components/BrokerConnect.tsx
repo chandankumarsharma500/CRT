@@ -7,8 +7,11 @@ import {
   Wifi, WifiOff, ArrowUpDown, CornerDownRight, CheckSquare, Info
 } from 'lucide-react';
 import { ALL_BROKERS, brokerRegistry, BrokerStepGuide } from '../services/brokerRegistry';
-import { BrokerId, BrokerMetadata, BrokerProfile, WebSocketState, UpstoxClosingPrice } from '../types';
+import { BrokerId, BrokerMetadata, BrokerProfile, WebSocketState, UpstoxClosingPrice, BrokerClosingPrice } from '../types';
 import { upstoxService } from '../services/upstoxService';
+import { dhanService } from '../services/dhanService';
+import { ClaudeService } from '../services/claudeService';
+import { yahooFinanceService } from '../services/yahooFinanceService';
 
 export const BrokerConnect: React.FC = () => {
   const [selectedBrokerId, setSelectedBrokerId] = useState<BrokerId>(() => brokerRegistry.getActiveBrokerId());
@@ -34,14 +37,24 @@ export const BrokerConnect: React.FC = () => {
   const [isFetchingRest, setIsFetchingRest] = useState(false);
   const [enableCorsProxy, setEnableCorsProxy] = useState<boolean>(() => upstoxService.getConfig()?.enableCorsProxy ?? false);
 
-  // Subscribe to live Upstox closing prices and WebSocket state
+  // Dhan Live WebSocket & Server REST Proxy state
+  const [dhanWsState, setDhanWsState] = useState<WebSocketState>(() => dhanService.getWebSocketState());
+  const [dhanQuotes, setDhanQuotes] = useState<Record<string, BrokerClosingPrice>>(() => dhanService.getLatestQuotesSnapshot());
+  const [isFetchingDhan, setIsFetchingDhan] = useState(false);
+
+  // Subscribe to live Upstox & Dhan closing prices and WebSocket state
   useEffect(() => {
-    const unsub = upstoxService.subscribe((quotes, state) => {
+    const unsubUpstox = upstoxService.subscribe((quotes, state) => {
       setUpstoxQuotes(quotes);
       setUpstoxWsState(state);
     });
+    const unsubDhan = dhanService.subscribe((quotes, state) => {
+      setDhanQuotes({ ...quotes });
+      setDhanWsState(state);
+    });
     return () => {
-      unsub();
+      unsubUpstox();
+      unsubDhan();
     };
   }, []);
 
@@ -539,6 +552,102 @@ export const BrokerConnect: React.FC = () => {
                       </a>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* SPECIALIZED DHAN HQ SERVER BRIDGE & CLAUDE LIVE SYNC PANEL */}
+              {selectedBrokerMeta.id === 'DHAN' && (
+                <div className="mb-6 p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4 animate-in fade-in duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-500/15">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-1.5">
+                          {dhanWsState === 'CONNECTED' ? (
+                            <Wifi size={14} className="text-emerald-500 animate-pulse" />
+                          ) : (
+                            <Server size={14} className="text-indigo-400" />
+                          )}
+                          Dhan HQ Cloud &amp; Claude Bridge: {dhanWsState}
+                        </span>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${
+                          dhanWsState === 'CONNECTED'
+                            ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30'
+                            : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                        }`}>
+                          Server Proxy Active (Zero CORS)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Dhan API credentials save karte hi server-side proxy (/api/dhan/marketfeed) live OHLC &amp; LTP fetch karta hai aur Claude Copilot context me sync karta hai.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          setIsFetchingDhan(true);
+                          await dhanService.fetchLastAvailableClosingPricesViaRest();
+                          setIsFetchingDhan(false);
+                        }}
+                        disabled={isFetchingDhan}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                      >
+                        <RefreshCw size={11} className={isFetchingDhan ? 'animate-spin text-indigo-400' : ''} />
+                        Fetch Live Dhan
+                      </button>
+                      <button
+                        onClick={() => {
+                          const payload = ClaudeService.generateClaudeAiContextPayload({
+                            activeStrategies: [],
+                            openOrders: [],
+                            totalPnl: 0,
+                            executionMode: 'LIVE',
+                            quotes: yahooFinanceService.getCachedQuotes(),
+                          });
+                          ClaudeService.openClaudeAiWithContext(payload);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all"
+                      >
+                        <ExternalLink size={11} />
+                        Sync to Claude.ai
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {[
+                      { id: 'nifty', name: 'NIFTY 50' },
+                      { id: 'bank_nifty', name: 'BANK NIFTY' },
+                      { id: 'sensex', name: 'SENSEX' }
+                    ].map(idx => {
+                      const q = dhanQuotes[idx.id];
+                      const lastClose = q?.lastClose || 0;
+                      const lastPrice = q?.lastPrice || lastClose;
+                      const change = lastPrice - lastClose;
+                      const isUp = change >= 0;
+                      return (
+                        <div key={idx.id} className="bg-slate-900/80 border border-indigo-500/20 rounded-xl p-3 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-black text-white">{idx.name}</span>
+                            <span className="text-[8px] font-black px-1.5 py-0.5 rounded font-mono bg-indigo-500/20 text-indigo-300">
+                              {q?.source === 'REST_API' ? 'DHAN LIVE' : q?.source === 'WEBSOCKET' ? 'DHAN WS' : 'CACHED'}
+                            </span>
+                          </div>
+                          <div className="flex items-baseline justify-between pt-1">
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase font-mono">Close:</p>
+                              <p className="text-xs font-mono font-bold text-slate-300">₹{lastClose.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-[9px] text-slate-400 uppercase font-mono">LTP:</p>
+                              <p className={`text-xs font-mono font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                ₹{lastPrice.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
