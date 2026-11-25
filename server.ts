@@ -677,7 +677,7 @@ async function startServer() {
   }
 
   const ALLOWED_SCANNER_INTERVALS = new Set(['5m', '15m', '1h', '60m', '1d', '1wk']);
-  const ALLOWED_SCANNER_RANGES = new Set(['5d', '1mo', '3mo', '6mo', '1y', '2y', '5y']);
+  const ALLOWED_SCANNER_RANGES = new Set(['5d', '1mo', '2mo', '3mo', '6mo', '1y', '2y', '3y', '5y']);
   const SYMBOL_REGEX = /^[A-Z0-9^._=&-]{1,24}$/;
   const scannerCandleCache = new Map<string, { timestamp: number; bars: ScannerBar[] }>();
   const SCANNER_CACHE_TTL_MS = 60_000;
@@ -787,8 +787,8 @@ async function startServer() {
   app.post('/api/scanner/candles', async (req: Request, res: Response) => {
     try {
       const rawSymbols = req.body?.symbols;
-      if (!Array.isArray(rawSymbols) || rawSymbols.length === 0 || rawSymbols.length > 35) {
-        res.status(400).json({ error: 'Provide between 1 and 35 valid symbols.' });
+      if (!Array.isArray(rawSymbols) || rawSymbols.length === 0 || rawSymbols.length > 45) {
+        res.status(400).json({ error: 'Provide between 1 and 45 valid symbols.' });
         return;
       }
 

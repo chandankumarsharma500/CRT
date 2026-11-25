@@ -14,6 +14,8 @@ import { brokerRegistry } from '../services/brokerRegistry';
 import { AILogic, AIAnalysisResult } from '../services/aiLogic';
 import { yahooFinanceService, YahooQuote } from '../services/yahooFinanceService';
 import { ClaudeService } from '../services/claudeService';
+import { IndiaCrtDashboardPanel } from './IndiaCrtDashboardPanel';
+import { Scanner5Hub } from './Scanner5Hub';
 
 interface DashboardProps {
   darkMode: boolean;
@@ -37,6 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isAuditingScalp, setIsAuditingScalp] = useState(false);
   const [yahooQuotes, setYahooQuotes] = useState<Record<string, YahooQuote>>(() => yahooFinanceService.getAllQuotes());
   const [copiedClaude, setCopiedClaude] = useState(false);
+  const [activeRepoScanner, setActiveRepoScanner] = useState<'both' | 'india-crt' | 'scanner-5'>('both');
   const intervalRef = useRef<any>(null);
 
   const activeBrokerId = brokerRegistry.getActiveBrokerId();
@@ -359,6 +362,63 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 2B. UNIFIED STRATEGY SCANNER DECK (INDIA-CRT-SCANNER + SCANNER 5.0)       */}
+      {/* ========================================================================= */}
+      <div className="space-y-4">
+        <div className="hud-panel rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border border-cyan-500/25">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-[10px] text-cyan-400 font-extrabold tracking-wider">
+              <Radar size={13} />
+              <span>FULL REPOSITORY STRATEGY SCANNERS</span>
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
+              India CRT Setup Scanner &amp; Scanner 5.0 (NSE · BSE · US · Gold/FX · Backtest)
+            </h3>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-black/5 dark:bg-white/[0.04] border border-black/10 dark:border-white/10 shrink-0">
+            <button
+              onClick={() => setActiveRepoScanner('both')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-mono font-bold transition-colors whitespace-nowrap ${
+                activeRepoScanner === 'both'
+                  ? 'bg-emerald-500 text-slate-950'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Show Both Scanners
+            </button>
+            <button
+              onClick={() => setActiveRepoScanner('india-crt')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-mono font-bold transition-colors whitespace-nowrap ${
+                activeRepoScanner === 'india-crt'
+                  ? 'bg-cyan-500 text-slate-950'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              India CRT Setup Scanner
+            </button>
+            <button
+              onClick={() => setActiveRepoScanner('scanner-5')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-mono font-bold transition-colors whitespace-nowrap ${
+                activeRepoScanner === 'scanner-5'
+                  ? 'bg-cyan-500 text-slate-950'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Scanner 5.0 (NSE/BSE/US/Risk)
+            </button>
+          </div>
+        </div>
+
+        {(activeRepoScanner === 'both' || activeRepoScanner === 'india-crt') && (
+          <IndiaCrtDashboardPanel darkMode={darkMode} />
+        )}
+        {(activeRepoScanner === 'both' || activeRepoScanner === 'scanner-5') && (
+          <Scanner5Hub />
+        )}
       </div>
 
       {/* ========================================================================= */}

@@ -13,8 +13,26 @@ export interface UniverseItem {
   shortCode: string;
   name: string;
   sector: string;
-  exchange: 'NSE' | 'BSE' | 'INDEX' | 'COMMODITY';
+  exchange: 'NSE' | 'BSE' | 'US' | 'INDEX' | 'COMMODITY';
 }
+
+export const US_UNIVERSE: UniverseItem[] = [
+  { symbol: 'AAPL', shortCode: 'AAPL', name: 'Apple Inc.', sector: 'Tech', exchange: 'US' },
+  { symbol: 'MSFT', shortCode: 'MSFT', name: 'Microsoft Corp.', sector: 'Tech', exchange: 'US' },
+  { symbol: 'NVDA', shortCode: 'NVDA', name: 'NVIDIA Corp.', sector: 'Semiconductors', exchange: 'US' },
+  { symbol: 'TSLA', shortCode: 'TSLA', name: 'Tesla Inc.', sector: 'EV / Auto', exchange: 'US' },
+  { symbol: 'AMZN', shortCode: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer', exchange: 'US' },
+  { symbol: 'META', shortCode: 'META', name: 'Meta Platforms', sector: 'Communication', exchange: 'US' },
+  { symbol: 'GOOGL', shortCode: 'GOOGL', name: 'Alphabet Inc.', sector: 'Communication', exchange: 'US' },
+  { symbol: 'AMD', shortCode: 'AMD', name: 'Advanced Micro Devices', sector: 'Semiconductors', exchange: 'US' },
+  { symbol: 'AVGO', shortCode: 'AVGO', name: 'Broadcom Inc.', sector: 'Semiconductors', exchange: 'US' },
+  { symbol: 'NFLX', shortCode: 'NFLX', name: 'Netflix Inc.', sector: 'Media', exchange: 'US' },
+  { symbol: 'SPY', shortCode: 'SPY', name: 'SPDR S&P 500 ETF', sector: 'Index ETF', exchange: 'US' },
+  { symbol: 'QQQ', shortCode: 'QQQ', name: 'Invesco QQQ Trust', sector: 'Index ETF', exchange: 'US' },
+  { symbol: 'PLTR', shortCode: 'PLTR', name: 'Palantir Technologies', sector: 'Software', exchange: 'US' },
+  { symbol: 'COIN', shortCode: 'COIN', name: 'Coinbase Global', sector: 'Crypto Equity', exchange: 'US' },
+  { symbol: 'MSTR', shortCode: 'MSTR', name: 'MicroStrategy Inc.', sector: 'Software', exchange: 'US' },
+];
 
 export const NSE_SECTORS: Record<string, string> = {
   RELIANCE: 'Energy',
@@ -147,6 +165,47 @@ export const INDIA_CRT_CORE_UNIVERSE: UniverseItem[] = [
   ...NSE_UNIVERSE.slice(0, 12),
 ];
 
+export const INDIA_ALL_INDICES_UNIVERSE: UniverseItem[] = [
+  { symbol: '^NSEI', shortCode: 'NIFTY 50', name: 'Nifty 50', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^NSMIDCP', shortCode: 'NIFTY NEXT 50', name: 'Nifty Next 50', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^CNX100', shortCode: 'NIFTY 100', name: 'Nifty 100', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^CNX200', shortCode: 'NIFTY 200', name: 'Nifty 200', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^NSEMDCP50', shortCode: 'MIDCAP 50', name: 'Nifty Midcap 50', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^CRSLDX', shortCode: 'NIFTY 500', name: 'Nifty 500', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^NSEBANK', shortCode: 'NIFTY BANK', name: 'Nifty Bank', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: 'NIFTY_FIN_SERVICE.NS', shortCode: 'FINNIFTY', name: 'Nifty Financial Services', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXFIN', shortCode: 'FIN 25/50', name: 'Nifty Financial Services 25/50', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXIT', shortCode: 'NIFTY IT', name: 'Nifty IT', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXAUTO', shortCode: 'NIFTY AUTO', name: 'Nifty Auto', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXFMCG', shortCode: 'NIFTY FMCG', name: 'Nifty FMCG', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXPHARMA', shortCode: 'NIFTY PHARMA', name: 'Nifty Pharma', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXMETAL', shortCode: 'NIFTY METAL', name: 'Nifty Metal', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXREALTY', shortCode: 'NIFTY REALTY', name: 'Nifty Realty', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXENERGY', shortCode: 'NIFTY ENERGY', name: 'Nifty Energy', sector: 'Thematic', exchange: 'INDEX' },
+  { symbol: '^CNXMEDIA', shortCode: 'NIFTY MEDIA', name: 'Nifty Media', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXPSUBANK', shortCode: 'PSU BANK', name: 'Nifty PSU Bank', sector: 'Sectoral', exchange: 'INDEX' },
+  { symbol: '^CNXINFRA', shortCode: 'NIFTY INFRA', name: 'Nifty Infrastructure', sector: 'Thematic', exchange: 'INDEX' },
+  { symbol: '^CNXMNC', shortCode: 'NIFTY MNC', name: 'Nifty MNC', sector: 'Thematic', exchange: 'INDEX' },
+  { symbol: '^CNXSC', shortCode: 'SMLCAP 100', name: 'Nifty Smallcap 100', sector: 'Broad Market', exchange: 'INDEX' },
+  { symbol: '^CNXPSE', shortCode: 'NIFTY PSE', name: 'Nifty PSE', sector: 'Thematic', exchange: 'INDEX' },
+  { symbol: '^CNXCONSUM', shortCode: 'CONSUMPTION', name: 'Nifty Consumption', sector: 'Thematic', exchange: 'INDEX' },
+  { symbol: '^INDIAVIX', shortCode: 'INDIA VIX', name: 'India VIX Volatility', sector: 'Volatility', exchange: 'INDEX' },
+  { symbol: '^BSESN', shortCode: 'BSE SENSEX', name: 'S&P BSE Sensex', sector: 'BSE Index', exchange: 'INDEX' },
+];
+
+export const GOLD_GLOBAL_FUTURES_UNIVERSE: UniverseItem[] = [
+  { symbol: 'GC=F', shortCode: 'GOLD', name: 'Gold COMEX Futures (GC=F)', sector: 'Metals Futures', exchange: 'COMMODITY' },
+  { symbol: 'SI=F', shortCode: 'SILVER', name: 'Silver COMEX Futures (SI=F)', sector: 'Metals Futures', exchange: 'COMMODITY' },
+  { symbol: 'CL=F', shortCode: 'CRUDE', name: 'WTI Crude Oil Futures (CL=F)', sector: 'Energy Futures', exchange: 'COMMODITY' },
+  { symbol: 'YM=F', shortCode: 'US30 / DOW', name: 'Dow Jones E-mini Futures (YM=F)', sector: 'Index Futures', exchange: 'COMMODITY' },
+  { symbol: '6E=F', shortCode: 'EUR/USD FUT', name: 'Euro FX Futures (6E=F)', sector: 'FX Futures', exchange: 'COMMODITY' },
+  { symbol: '6B=F', shortCode: 'GBP/USD FUT', name: 'British Pound Futures (6B=F)', sector: 'FX Futures', exchange: 'COMMODITY' },
+  { symbol: '6J=F', shortCode: 'JPY/USD FUT', name: 'Japanese Yen Futures (6J=F)', sector: 'FX Futures', exchange: 'COMMODITY' },
+  { symbol: 'BTC-USD', shortCode: 'BTC/USD', name: 'Bitcoin Spot / Perp Proxy', sector: 'Crypto Futures', exchange: 'COMMODITY' },
+  { symbol: 'ETH-USD', shortCode: 'ETH/USD', name: 'Ethereum Spot / Perp Proxy', sector: 'Crypto Futures', exchange: 'COMMODITY' },
+  { symbol: 'SOL-USD', shortCode: 'SOL/USD', name: 'Solana Spot / Perp Proxy', sector: 'Crypto Futures', exchange: 'COMMODITY' },
+];
+
 export interface MonthlyDailyCRTResult {
   symbol: string;
   name: string;
@@ -219,7 +278,7 @@ export interface Scanner5DailyResult {
   symbol: string;
   shortCode: string;
   name: string;
-  exchange: 'NSE' | 'BSE' | 'INDEX' | 'COMMODITY';
+  exchange: UniverseItem['exchange'];
   sector: string;
   status: 'ok' | 'insufficient_data';
   asOf: string;
@@ -317,7 +376,7 @@ export interface DerivativesRow {
 export async function fetchScannerCandles(
   symbols: string[],
   interval: '5m' | '15m' | '1h' | '60m' | '1d' | '1wk' = '1d',
-  range: '5d' | '1mo' | '3mo' | '6mo' | '1y' | '2y' | '5y' = '3mo'
+  range: '5d' | '1mo' | '2mo' | '3mo' | '6mo' | '1y' | '2y' | '3y' | '5y' = '3mo'
 ): Promise<{ candlesBySymbol: Record<string, ScannerBar[]>; errors: Array<{ symbol: string; error: string }> }> {
   const clean = Array.from(new Set(symbols.map((s) => s.trim().toUpperCase()).filter(Boolean)));
   const allCandles: Record<string, ScannerBar[]> = {};
@@ -1558,3 +1617,751 @@ export function parseDerivativesCsv(csvText: string): { rows: DerivativesRow[]; 
 
   return { rows, errors };
 }
+
+// ============================================================================
+// 10. INDIA-CRT-SETUP-SCANNER HELPERS: TRADINGVIEW URL, PINE SCRIPT v5 & CSV
+// ============================================================================
+export function toTradingViewSymbol(symbol: string): string {
+  const s = symbol.trim().toUpperCase();
+  const map: Record<string, string> = {
+    '^NSEI': 'NSE:NIFTY',
+    '^NSEBANK': 'NSE:BANKNIFTY',
+    'NIFTY_FIN_SERVICE.NS': 'NSE:CNXFINANCE',
+    '^CNXFIN': 'NSE:CNXFINANCE',
+    '^BSESN': 'BSE:SENSEX',
+    '^CNXIT': 'NSE:CNXIT',
+    '^NSMIDCP': 'NSE:NIFTYJR',
+    '^NSEMDCP50': 'NSE:CNXMIDCAP',
+    '^INDIAVIX': 'NSE:INDIAVIX',
+    'GC=F': 'COMEX:GC1!',
+    'SI=F': 'COMEX:SI1!',
+    'CL=F': 'NYMEX:CL1!',
+    'YM=F': 'CBOT:YM1!',
+    '6E=F': 'CME:6E1!',
+    '6B=F': 'CME:6B1!',
+    '6J=F': 'CME:6J1!',
+    'BTC-USD': 'BINANCE:BTCUSDT',
+    'ETH-USD': 'BINANCE:ETHUSDT',
+    'SOL-USD': 'BINANCE:SOLUSDT',
+  };
+  if (map[s]) return map[s];
+  if (s.endsWith('.NS')) return `NSE:${s.slice(0, -3)}`;
+  if (s.endsWith('.BO')) return `BSE:${s.slice(0, -3)}`;
+  if (s.startsWith('^')) return `NSE:${s.slice(1)}`;
+  return `NSE:${s}`;
+}
+
+export function toTradingViewUrl(symbol: string): string {
+  return `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(toTradingViewSymbol(symbol))}`;
+}
+
+export function generateCrtPineScript(row: MonthlyDailyCRTResult): string {
+  const fmt = (v: number | null | undefined) =>
+    typeof v === 'number' && Number.isFinite(v) && v > 0 ? v.toFixed(4) : 'na';
+  return [
+    '//@version=5',
+    `indicator("India CRT Levels — ${row.symbol}", overlay=true)`,
+    `m1High = ${fmt(row.m1High)}`,
+    `m1Low = ${fmt(row.m1Low)}`,
+    `m2High = ${fmt(row.m2High)}`,
+    `m2Low = ${fmt(row.m2Low)}`,
+    `entryPrice = ${fmt(row.entry)}`,
+    `stopPrice = ${fmt(row.sl)}`,
+    `target2R = ${fmt(row.t1)}`,
+    `m1Target = ${fmt(row.target)}`,
+    'plot(m1High, "M1 High", color=color.gray, linewidth=2)',
+    'plot(m1Low, "M1 Low", color=color.gray, linewidth=2)',
+    'plot(m2High, "M2 High", color=color.blue, style=plot.style_linebr)',
+    'plot(m2Low, "M2 Low", color=color.blue, style=plot.style_linebr)',
+    'plot(entryPrice, "Entry", color=color.green, linewidth=2)',
+    'plot(stopPrice, "Stop Loss", color=color.red, linewidth=2)',
+    'plot(target2R, "Target 2R", color=color.lime, linewidth=2)',
+    'plot(m1Target, "M1 Full-Month Target", color=color.purple, linewidth=2)',
+  ].join('\n');
+}
+
+export function buildCrtResultsCsv(rows: MonthlyDailyCRTResult[]): string {
+  const headers = [
+    'Symbol', 'Name', 'Bias', 'Stage', 'Setup', 'LTP', 'Entry', 'SL', 'T1 (2R)',
+    'Target (M1 H/L)', 'Entry Zone', 'M1 Month', 'M1 High', 'M1 Low',
+    'M2 Month', 'M2 High', 'M2 Low', 'M2 Close', 'M3 Month',
+    'Sweep Type', 'CHoCH Level', 'CHoCH Rule', 'Setup Reason', 'Last Candle'
+  ];
+  const esc = (v: unknown) => {
+    const s = v === null || v === undefined ? '' : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.join(',')];
+  for (const r of rows) {
+    lines.push([
+      r.symbol, r.name, r.bias, r.stage, r.setup, r.ltp, r.entry ?? '', r.sl ?? '', r.t1 ?? '',
+      r.target ?? '', r.entryZoneType, r.m1Month, r.m1High, r.m1Low,
+      r.m2Month, r.m2High, r.m2Low, r.m2Close, r.m3Month,
+      r.sweepType, r.chochLevel ?? '', r.chochRule, r.setupReason, r.lastCandleDate
+    ].map(esc).join(','));
+  }
+  return lines.join('\n');
+}
+
+// ============================================================================
+// 11. HISTORICAL MONTHLY-DAILY CRT BACKTEST (backtest.py)
+// ============================================================================
+export interface CRTBacktestTrade {
+  symbol: string;
+  direction: 'LONG' | 'SHORT';
+  m3Month: string;
+  entryDate: string;
+  exitDate: string;
+  entryPrice: number;
+  stopLoss: number;
+  targetPrice: number;
+  exitPrice: number;
+  outcome: 'WIN' | 'LOSS' | 'AMBIGUOUS (SL assumed)' | 'OPEN';
+  netReturnPct: number;
+  netPnlRs: number;
+  zoneType: string;
+}
+
+export interface CRTBacktestReport {
+  trades: CRTBacktestTrade[];
+  totalTrades: number;
+  closedTrades: number;
+  wins: number;
+  losses: number;
+  ambiguous: number;
+  winRatePct: number;
+  profitFactor: number;
+  totalReturnPct: number;
+  endingCapital: number;
+  maxDrawdownPct: number;
+}
+
+export function runHistoricalCRTBacktest(
+  symbol: string,
+  name: string,
+  rawDailyBars: ScannerBar[],
+  initialCapital = 100000,
+  chargesBpsPerSide = 12,
+  slippageBpsPerSide = 5
+): CRTBacktestReport {
+  const bars = [...rawDailyBars].sort((a, b) => a.timestamp - b.timestamp);
+  const trades: CRTBacktestTrade[] = [];
+  const seenMonthDir = new Set<string>();
+  const frictionRate = (chargesBpsPerSide + slippageBpsPerSide) / 10000;
+
+  for (let idx = 45; idx < bars.length; idx++) {
+    const prefix = bars.slice(Math.max(0, idx - 179), idx + 1);
+    const res = analyzeMonthlyDailyCRT(symbol, name, prefix);
+    if (res.stage !== 3 || (res.setup !== 'BUY' && res.setup !== 'SELL')) continue;
+    if (!res.entry || !res.sl || !res.target) continue;
+
+    const dedupeKey = `${res.m3Month}|${res.setup}`;
+    if (seenMonthDir.has(dedupeKey)) continue;
+    seenMonthDir.add(dedupeKey);
+
+    const direction: 1 | -1 = res.setup === 'BUY' ? 1 : -1;
+    if (direction === 1 && !(res.sl < res.entry && res.entry < res.target)) continue;
+    if (direction === -1 && !(res.target < res.entry && res.entry < res.sl)) continue;
+
+    let exitIdx = bars.length - 1;
+    let exitPrice = bars[exitIdx].close;
+    let outcome: CRTBacktestTrade['outcome'] = 'OPEN';
+
+    for (let j = idx + 1; j < bars.length; j++) {
+      const b = bars[j];
+      const hitStop = direction === 1 ? b.low <= res.sl : b.high >= res.sl;
+      const hitTarget = direction === 1 ? b.high >= res.target : b.low <= res.target;
+      if (hitStop && hitTarget) {
+        exitIdx = j;
+        exitPrice = res.sl;
+        outcome = 'AMBIGUOUS (SL assumed)';
+        break;
+      }
+      if (hitStop) {
+        exitIdx = j;
+        exitPrice =
+          direction === 1 && b.open < res.sl
+            ? b.open
+            : direction === -1 && b.open > res.sl
+              ? b.open
+              : res.sl;
+        outcome = 'LOSS';
+        break;
+      }
+      if (hitTarget) {
+        exitIdx = j;
+        exitPrice = res.target;
+        outcome = 'WIN';
+        break;
+      }
+    }
+
+    const grossPct = direction * ((exitPrice / res.entry) - 1) * 100;
+    const netPct = grossPct - 2 * frictionRate * 100;
+    const riskPerShare = Math.abs(res.entry - res.sl);
+    const riskBudget = initialCapital * 0.01;
+    const qty = riskPerShare > 0 ? Math.max(1, Math.floor(riskBudget / riskPerShare)) : 1;
+    const grossPnl = direction * (exitPrice - res.entry) * qty;
+    const fees = (res.entry * qty + exitPrice * qty) * frictionRate;
+    const netPnlRs = Number((grossPnl - fees).toFixed(2));
+
+    trades.push({
+      symbol,
+      direction: direction === 1 ? 'LONG' : 'SHORT',
+      m3Month: res.m3Month,
+      entryDate: toIstDateKey(bars[idx].timestamp),
+      exitDate: toIstDateKey(bars[exitIdx].timestamp),
+      entryPrice: Number(res.entry.toFixed(2)),
+      stopLoss: Number(res.sl.toFixed(2)),
+      targetPrice: Number(res.target.toFixed(2)),
+      exitPrice: Number(exitPrice.toFixed(2)),
+      outcome,
+      netReturnPct: Number(netPct.toFixed(2)),
+      netPnlRs,
+      zoneType: res.entryZoneType,
+    });
+  }
+
+  let equity = initialCapital;
+  let peak = initialCapital;
+  let maxDd = 0;
+  let grossProfit = 0;
+  let grossLoss = 0;
+  let wins = 0;
+  let losses = 0;
+  let ambiguous = 0;
+
+  for (const t of trades) {
+    if (t.outcome !== 'OPEN') {
+      equity += t.netPnlRs;
+      peak = Math.max(peak, equity);
+      const dd = peak > 0 ? ((equity / peak) - 1) * 100 : 0;
+      maxDd = Math.min(maxDd, dd);
+      if (t.netPnlRs > 0) grossProfit += t.netPnlRs;
+      else grossLoss += Math.abs(t.netPnlRs);
+    }
+    if (t.outcome === 'WIN') wins++;
+    else if (t.outcome === 'LOSS') losses++;
+    else if (t.outcome.startsWith('AMBIGUOUS')) ambiguous++;
+  }
+
+  const closedTrades = wins + losses + ambiguous;
+  const totalReturnPct = Number((((equity / initialCapital) - 1) * 100).toFixed(2));
+  const profitFactor = grossLoss > 0 ? Number((grossProfit / grossLoss).toFixed(2)) : grossProfit > 0 ? 9.99 : 0;
+
+  return {
+    trades,
+    totalTrades: trades.length,
+    closedTrades,
+    wins,
+    losses,
+    ambiguous,
+    winRatePct: closedTrades > 0 ? Number(((wins / closedTrades) * 100).toFixed(1)) : 0,
+    profitFactor,
+    totalReturnPct,
+    endingCapital: Number(equity.toFixed(2)),
+    maxDrawdownPct: Number(maxDd.toFixed(2)),
+  };
+}
+
+// ============================================================================
+// 12. 12-ALGO RESEARCH BENCHMARK ENGINE (algo_research.py)
+// ============================================================================
+export const ALGO_RESEARCH_NAMES = [
+  'EMA 9/21 Crossover',
+  'RSI 14 Mean Reversion',
+  'MACD 12/26/9',
+  'Supertrend 10/3',
+  'Donchian 20 Breakout',
+  '20-Day Momentum',
+  'Volume Breakout',
+  'EMA 20 + RSI Trend Filter',
+  'DAY: VWAP Reclaim',
+  'DAY: Opening Range Breakout (30m)',
+  'DAY: EMA 9/21 Intraday Cross',
+  'DAY: RSI + VWAP Trend',
+] as const;
+
+export type AlgoResearchName = (typeof ALGO_RESEARCH_NAMES)[number];
+
+export interface AlgoResearchSummary {
+  algo: AlgoResearchName;
+  totalReturnPct: number;
+  cagrPct: number;
+  maxDrawdownPct: number;
+  winRatePct: number;
+  profitFactor: number;
+  expectancyPct: number;
+  trades: number;
+  closedTrades: number;
+  exposurePct: number;
+  benchmarkReturnPct: number;
+  dataBars: number;
+  curve: Array<{ date: string; equity: number; benchmark: number }>;
+}
+
+function calcEmaSeries(vals: number[], span: number): number[] {
+  const k = 2 / (span + 1);
+  const out: number[] = [];
+  vals.forEach((v, i) => {
+    out.push(i === 0 ? v : v * k + out[i - 1] * (1 - k));
+  });
+  return out;
+}
+
+function calcRsiSeries(closes: number[], period = 14): number[] {
+  const out = new Array(closes.length).fill(50);
+  let avgGain = 0;
+  let avgLoss = 0;
+  for (let i = 1; i < closes.length; i++) {
+    const diff = closes[i] - closes[i - 1];
+    const gain = Math.max(diff, 0);
+    const loss = Math.max(-diff, 0);
+    if (i <= period) {
+      avgGain += gain / period;
+      avgLoss += loss / period;
+    } else {
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
+    }
+    if (i >= period) {
+      const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+      out[i] = 100 - 100 / (1 + rs);
+    }
+  }
+  return out;
+}
+
+function calcSupertrendDir(bars: ScannerBar[], period = 10, mult = 3): number[] {
+  const n = bars.length;
+  const tr = bars.map((b, i) => {
+    if (i === 0) return b.high - b.low;
+    const prevC = bars[i - 1].close;
+    return Math.max(b.high - b.low, Math.abs(b.high - prevC), Math.abs(b.low - prevC));
+  });
+  const atr = calcEmaSeries(tr, period);
+  const fUpper = new Array(n).fill(0);
+  const fLower = new Array(n).fill(0);
+  const dir = new Array(n).fill(1);
+  for (let i = 0; i < n; i++) {
+    const hl2 = (bars[i].high + bars[i].low) / 2;
+    const bUp = hl2 + mult * atr[i];
+    const bLo = hl2 - mult * atr[i];
+    if (i === 0) {
+      fUpper[i] = bUp;
+      fLower[i] = bLo;
+      continue;
+    }
+    fUpper[i] = bUp < fUpper[i - 1] || bars[i - 1].close > fUpper[i - 1] ? bUp : fUpper[i - 1];
+    fLower[i] = bLo > fLower[i - 1] || bars[i - 1].close < fLower[i - 1] ? bLo : fLower[i - 1];
+    if (bars[i].close > fUpper[i - 1]) dir[i] = 1;
+    else if (bars[i].close < fLower[i - 1]) dir[i] = -1;
+    else dir[i] = dir[i - 1];
+  }
+  return dir;
+}
+
+export function runAlgoResearchBacktest(
+  rawBars: ScannerBar[],
+  selectedAlgos: AlgoResearchName[],
+  chargesBpsPerSide = 12,
+  slippageBpsPerSide = 5
+): AlgoResearchSummary[] {
+  const bars = [...rawBars].sort((a, b) => a.timestamp - b.timestamp);
+  if (bars.length < 30) return [];
+
+  const closes = bars.map((b) => b.close);
+  const ema9 = calcEmaSeries(closes, 9);
+  const ema20 = calcEmaSeries(closes, 20);
+  const ema21 = calcEmaSeries(closes, 21);
+  const ema12 = calcEmaSeries(closes, 12);
+  const ema26 = calcEmaSeries(closes, 26);
+  const macd = ema12.map((v, i) => v - ema26[i]);
+  const macdSig = calcEmaSeries(macd, 9);
+  const rsi = calcRsiSeries(closes, 14);
+  const supertrend = calcSupertrendDir(bars, 10, 3);
+
+  // Session VWAP + Opening Range proxies
+  const vwap = new Array(bars.length).fill(0);
+  const orbHigh = new Array(bars.length).fill(0);
+  const orbLow = new Array(bars.length).fill(0);
+  let curDay = '';
+  let cumPV = 0;
+  let cumV = 0;
+  let dayCount = 0;
+  let dHigh = 0;
+  let dLow = 0;
+
+  for (let i = 0; i < bars.length; i++) {
+    const dk = toIstDateKey(bars[i].timestamp);
+    if (dk !== curDay) {
+      curDay = dk;
+      cumPV = 0;
+      cumV = 0;
+      dayCount = 0;
+      dHigh = bars[i].high;
+      dLow = bars[i].low;
+    }
+    dayCount++;
+    const typical = (bars[i].high + bars[i].low + bars[i].close) / 3;
+    const vol = Math.max(bars[i].volume, 1);
+    cumPV += typical * vol;
+    cumV += vol;
+    vwap[i] = cumPV / cumV;
+    if (dayCount <= 2) {
+      dHigh = Math.max(dHigh, bars[i].high);
+      dLow = Math.min(dLow, bars[i].low);
+    }
+    orbHigh[i] = dHigh;
+    orbLow[i] = dLow;
+  }
+
+  const friction = (chargesBpsPerSide + slippageBpsPerSide) / 10000;
+  const firstOpen = bars[0].open || bars[0].close || 1;
+  const spanYears = Math.max((bars[bars.length - 1].timestamp - bars[0].timestamp) / (365.25 * 86400 * 1000), 1 / 365.25);
+
+  return selectedAlgos.map((algo) => {
+    const rawSig = new Array(bars.length).fill(0);
+    for (let i = 20; i < bars.length; i++) {
+      const priorHigh = Math.max(...bars.slice(i - 20, i).map((b) => b.high));
+      const priorLow = Math.min(...bars.slice(i - 20, i).map((b) => b.low));
+      const avgVol = bars.slice(i - 20, i).reduce((s, b) => s + b.volume, 0) / 20;
+
+      switch (algo) {
+        case 'EMA 9/21 Crossover':
+        case 'DAY: EMA 9/21 Intraday Cross':
+          rawSig[i] = ema9[i] > ema21[i] ? 1 : -1;
+          break;
+        case 'RSI 14 Mean Reversion':
+          rawSig[i] = rsi[i] < 30 ? 1 : rsi[i] > 70 ? -1 : 0;
+          break;
+        case 'MACD 12/26/9':
+          rawSig[i] = macd[i] > macdSig[i] ? 1 : -1;
+          break;
+        case 'Supertrend 10/3':
+          rawSig[i] = supertrend[i];
+          break;
+        case 'Donchian 20 Breakout':
+          rawSig[i] = closes[i] > priorHigh ? 1 : closes[i] < priorLow ? -1 : 0;
+          break;
+        case '20-Day Momentum':
+          rawSig[i] = closes[i] > closes[i - 20] ? 1 : -1;
+          break;
+        case 'Volume Breakout':
+          rawSig[i] =
+            bars[i].volume > avgVol * 1.5
+              ? closes[i] > priorHigh
+                ? 1
+                : closes[i] < priorLow
+                  ? -1
+                  : 0
+              : 0;
+          break;
+        case 'EMA 20 + RSI Trend Filter':
+          rawSig[i] = closes[i] > ema20[i] && rsi[i] > 50 ? 1 : closes[i] < ema20[i] && rsi[i] < 50 ? -1 : 0;
+          break;
+        case 'DAY: VWAP Reclaim':
+          rawSig[i] = closes[i] > vwap[i] && bars[i - 1].close <= vwap[i - 1] ? 1 : closes[i] < vwap[i] && bars[i - 1].close >= vwap[i - 1] ? -1 : rawSig[i - 1];
+          break;
+        case 'DAY: Opening Range Breakout (30m)':
+          rawSig[i] = closes[i] > orbHigh[i] ? 1 : closes[i] < orbLow[i] ? -1 : 0;
+          break;
+        case 'DAY: RSI + VWAP Trend':
+          rawSig[i] = closes[i] > vwap[i] && rsi[i] > 55 ? 1 : closes[i] < vwap[i] && rsi[i] < 45 ? -1 : 0;
+          break;
+      }
+    }
+
+    // No look-ahead: trade next bar's open->open
+    let equity = 1.0;
+    let peak = 1.0;
+    let maxDd = 0;
+    let activeDays = 0;
+    let currentPos = 0;
+    let entryPx = 0;
+    const tradeNets: number[] = [];
+    const curve: Array<{ date: string; equity: number; benchmark: number }> = [];
+
+    for (let i = 1; i < bars.length; i++) {
+      const desired = rawSig[i - 1];
+      const prevDesired = i >= 2 ? rawSig[i - 2] : 0;
+      const posChange = Math.abs(desired - prevDesired);
+      const openNow = bars[i].open || bars[i].close;
+      const openPrev = bars[i - 1].open || bars[i - 1].close;
+      const barRet = prevDesired * (openPrev > 0 ? openNow / openPrev - 1 : 0);
+      const cost = posChange * friction;
+      equity = Math.max(0.05, equity * (1 + barRet - cost));
+      peak = Math.max(peak, equity);
+      maxDd = Math.min(maxDd, (equity / peak - 1) * 100);
+
+      if (desired !== 0) activeDays++;
+      if (desired !== currentPos) {
+        if (currentPos !== 0 && entryPx > 0) {
+          const grossPct = currentPos * (openNow / entryPx - 1) * 100;
+          tradeNets.push(grossPct - 2 * friction * 100);
+        }
+        if (desired !== 0) entryPx = openNow;
+        else entryPx = 0;
+        currentPos = desired;
+      }
+
+      if (i % Math.max(1, Math.floor(bars.length / 80)) === 0 || i === bars.length - 1) {
+        curve.push({
+          date: toIstDateKey(bars[i].timestamp),
+          equity: Number(equity.toFixed(4)),
+          benchmark: Number((openNow / firstOpen).toFixed(4)),
+        });
+      }
+    }
+
+    const totalReturnPct = Number(((equity - 1) * 100).toFixed(2));
+    const cagrPct = equity > 0 ? Number(((Math.pow(equity, 1 / spanYears) - 1) * 100).toFixed(2)) : -100;
+    const wins = tradeNets.filter((r) => r > 0);
+    const losses = tradeNets.filter((r) => r <= 0);
+    const grossWin = wins.reduce((s, x) => s + x, 0);
+    const grossLoss = Math.abs(losses.reduce((s, x) => s + x, 0));
+    const profitFactor = grossLoss > 0 ? Number((grossWin / grossLoss).toFixed(2)) : grossWin > 0 ? 9.99 : 0;
+    const expectancyPct = tradeNets.length > 0 ? Number((tradeNets.reduce((s, x) => s + x, 0) / tradeNets.length).toFixed(2)) : 0;
+    const lastOpen = bars[bars.length - 1].open || bars[bars.length - 1].close;
+
+    return {
+      algo,
+      totalReturnPct,
+      cagrPct,
+      maxDrawdownPct: Number(maxDd.toFixed(2)),
+      winRatePct: tradeNets.length > 0 ? Number(((wins.length / tradeNets.length) * 100).toFixed(1)) : 0,
+      profitFactor,
+      expectancyPct,
+      trades: tradeNets.length + (currentPos !== 0 ? 1 : 0),
+      closedTrades: tradeNets.length,
+      exposurePct: Number(((activeDays / bars.length) * 100).toFixed(1)),
+      benchmarkReturnPct: Number((((lastOpen / firstOpen) - 1) * 100).toFixed(2)),
+      dataBars: bars.length,
+      curve,
+    };
+  });
+}
+
+// ============================================================================
+// 13. SCANNER 5.0: BREAKOUT BACKTEST, PAPER SIZING & ALERTS (backtest.py, paper.py, alerts.py)
+// ============================================================================
+export interface Scanner5BacktestTrade {
+  entryDate: string;
+  exitDate: string;
+  entry: number;
+  stop: number;
+  exit: number;
+  qty: number;
+  pnl: number;
+  reason: 'stop_hit' | 'trend_exit' | 'end_of_data';
+}
+
+export interface Scanner5BacktestReport {
+  trades: Scanner5BacktestTrade[];
+  tradeCount: number;
+  winRatePct: number;
+  netPnl: number;
+  profitFactor: number | null;
+  maxDrawdownPct: number;
+  initialCapital: number;
+  endingEquity: number;
+}
+
+export function runScanner5BreakoutBacktest(
+  rawBars: ScannerBar[],
+  initialCapital = 100000,
+  feeBps = 10,
+  slippageBps = 5
+): Scanner5BacktestReport {
+  const bars = [...rawBars].sort((a, b) => a.timestamp - b.timestamp);
+  let cash = initialCapital;
+  let position: { entry: number; stop: number; qty: number; entryDate: string } | null = null;
+  const trades: Scanner5BacktestTrade[] = [];
+  const equity: number[] = [];
+
+  for (let i = 20; i < bars.length; i++) {
+    const bar = bars[i];
+    if (position) {
+      const prior10Low = Math.min(...bars.slice(i - 10, i).map((b) => b.low));
+      if (bar.low <= position.stop || bar.close < prior10Low) {
+        const exitPx = bar.low <= position.stop ? position.stop : bar.close;
+        const reason: Scanner5BacktestTrade['reason'] = bar.low <= position.stop ? 'stop_hit' : 'trend_exit';
+        const gross = (exitPx - position.entry) * position.qty;
+        const costs = (position.entry + exitPx) * position.qty * ((feeBps + slippageBps) / 10000);
+        const net = Number((gross - costs).toFixed(2));
+        cash += position.qty * exitPx - costs;
+        trades.push({
+          entryDate: position.entryDate,
+          exitDate: toIstDateKey(bar.timestamp),
+          entry: Number(position.entry.toFixed(2)),
+          stop: Number(position.stop.toFixed(2)),
+          exit: Number(exitPx.toFixed(2)),
+          qty: position.qty,
+          pnl: net,
+          reason,
+        });
+        position = null;
+      }
+    } else {
+      const prior20HighClose = Math.max(...bars.slice(i - 20, i).map((b) => b.close));
+      if (bar.close > prior20HighClose) {
+        const entry = bar.close;
+        const prior5Low = Math.min(...bars.slice(i - 5, i).map((b) => b.low));
+        const stop = Math.min(prior5Low, entry * 0.96);
+        if (entry > stop) {
+          const riskCash = cash * 0.005;
+          const byRisk = Math.floor(riskCash / (entry - stop));
+          const byCap = Math.floor((cash * 0.2) / entry);
+          const qty = Math.max(0, Math.min(byRisk, byCap));
+          if (qty > 0) {
+            cash -= qty * entry;
+            position = {
+              entry,
+              stop,
+              qty,
+              entryDate: toIstDateKey(bar.timestamp),
+            };
+          }
+        }
+      }
+    }
+    const mark = cash + (position ? position.qty * bar.close : 0);
+    equity.push(mark);
+  }
+
+  if (position && bars.length > 0) {
+    const last = bars[bars.length - 1];
+    const gross = (last.close - position.entry) * position.qty;
+    const costs = (position.entry + last.close) * position.qty * ((feeBps + slippageBps) / 10000);
+    const net = Number((gross - costs).toFixed(2));
+    cash += position.qty * last.close - costs;
+    trades.push({
+      entryDate: position.entryDate,
+      exitDate: toIstDateKey(last.timestamp),
+      entry: Number(position.entry.toFixed(2)),
+      stop: Number(position.stop.toFixed(2)),
+      exit: Number(last.close.toFixed(2)),
+      qty: position.qty,
+      pnl: net,
+      reason: 'end_of_data',
+    });
+    equity.push(cash);
+  }
+
+  const wins = trades.filter((t) => t.pnl > 0);
+  const losses = trades.filter((t) => t.pnl <= 0);
+  const sumWins = wins.reduce((s, t) => s + t.pnl, 0);
+  const sumLoss = Math.abs(losses.reduce((s, t) => s + t.pnl, 0));
+  let peak = equity[0] ?? initialCapital;
+  let maxDd = 0;
+  for (const v of equity) {
+    peak = Math.max(peak, v);
+    if (peak > 0) maxDd = Math.max(maxDd, (peak - v) / peak);
+  }
+
+  return {
+    trades,
+    tradeCount: trades.length,
+    winRatePct: trades.length > 0 ? Number(((100 * wins.length) / trades.length).toFixed(2)) : 0,
+    netPnl: Number(trades.reduce((s, t) => s + t.pnl, 0).toFixed(2)),
+    profitFactor: sumLoss > 0 ? Number((sumWins / sumLoss).toFixed(2)) : null,
+    maxDrawdownPct: Number((maxDd * 100).toFixed(2)),
+    initialCapital,
+    endingEquity: Number((equity[equity.length - 1] ?? initialCapital).toFixed(2)),
+  };
+}
+
+export interface PaperLedgerPosition {
+  id: string;
+  symbol: string;
+  exchange: 'NSE' | 'BSE' | 'US' | 'INDEX';
+  entry: number;
+  stop: number;
+  quantity: number;
+  notional: number;
+  estimatedMaxLoss: number;
+  recordedAt: string;
+}
+
+export function sizeScanner5PaperPosition(
+  capital: number,
+  entry: number,
+  stop: number,
+  riskPct = 0.5,
+  maxPositionPct = 20
+): {
+  valid: boolean;
+  error?: string;
+  quantity: number;
+  riskBudget: number;
+  riskPerShare: number;
+  estimatedMaxLoss: number;
+  notional: number;
+} {
+  if (capital <= 0 || entry <= 0 || stop <= 0 || stop >= entry) {
+    return {
+      valid: false,
+      error: 'Require positive capital/prices and stop strictly below entry for conservative long.',
+      quantity: 0,
+      riskBudget: 0,
+      riskPerShare: 0,
+      estimatedMaxLoss: 0,
+      notional: 0,
+    };
+  }
+  const safeRiskPct = Math.min(0.5, Math.max(0.05, riskPct));
+  const safeCapPct = Math.min(20, Math.max(1, maxPositionPct));
+  const riskBudget = Number(((capital * safeRiskPct) / 100).toFixed(2));
+  const riskPerShare = Number((entry - stop).toFixed(2));
+  const byRisk = Math.floor(riskBudget / riskPerShare);
+  const byCap = Math.floor((capital * (safeCapPct / 100)) / entry);
+  const quantity = Math.max(0, Math.min(byRisk, byCap));
+  return {
+    valid: true,
+    quantity,
+    riskBudget,
+    riskPerShare,
+    estimatedMaxLoss: Number((quantity * riskPerShare).toFixed(2)),
+    notional: Number((quantity * entry).toFixed(2)),
+  };
+}
+
+export interface Scanner5AlertItem {
+  symbol: string;
+  type: 'intraday_orb_volume_confirmed' | 'daily_setup_watch' | 'high_volume_watch';
+  detail: string;
+}
+
+export function buildScanner5Alerts(
+  dailyRows: Scanner5DailyResult[],
+  orbRows: Scanner5IntradayORBResult[],
+  minVolumeMultiple = 1.5
+): Scanner5AlertItem[] {
+  const alerts: Scanner5AlertItem[] = [];
+  for (const row of orbRows) {
+    if (row.paperWatch) {
+      alerts.push({
+        symbol: row.shortCode,
+        type: 'intraday_orb_volume_confirmed',
+        detail: `15m ORB breakout (${row.breakoutTime ?? 'session'}) with ${row.volumeMultiple ?? minVolumeMultiple}x volume`,
+      });
+    } else if (row.volumeMultiple !== null && row.volumeMultiple >= minVolumeMultiple) {
+      alerts.push({
+        symbol: row.shortCode,
+        type: 'high_volume_watch',
+        detail: `Volume surge ${row.volumeMultiple}x met; awaiting full ORB confirmation`,
+      });
+    }
+  }
+  for (const row of dailyRows) {
+    if (row.conservativeWatch && row.setups.length > 0) {
+      alerts.push({
+        symbol: row.shortCode,
+        type: 'daily_setup_watch',
+        detail: `${row.setups.join(', ')} (Ext ${row.extensionFromMa20Pct ?? 0}% ≤ 5%)`,
+      });
+    }
+  }
+  return alerts;
+}
+

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, BookOpen, BarChart, List, Layers, LogIn, TrendingUp, Menu, X, 
   Activity, Terminal, Shield, Zap, Moon, Sun, Globe, FlaskConical, AlertCircle, 
   Maximize2, RefreshCw, Bot, ExternalLink, Copy, Check, AlertOctagon,
-  ChevronRight, Radio, ShieldAlert, Cpu, Sparkles, Radar
+  ChevronRight, Radio, ShieldAlert, Cpu, Sparkles, Radar, Crosshair
 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { StrategyRules } from './components/StrategyRules';
@@ -18,16 +18,17 @@ import { CRTStrategy } from './components/CRTStrategy';
 import { SMCLogo } from './components/SMCLogo';
 import { AlgosEngine } from './components/AlgosEngine';
 import { Scanner5Hub } from './components/Scanner5Hub';
+import { IndiaCrtDashboardPanel } from './components/IndiaCrtDashboardPanel';
 import { upstoxService } from './services/upstoxService';
 import { yahooFinanceService, YahooQuote } from './services/yahooFinanceService';
 import { ClaudeService } from './services/claudeService';
 import { marketHoursService, MarketHoursStatus } from './services/marketHoursService';
 import { brokerRegistry } from './services/brokerRegistry';
 
-type View = 'algos' | 'dashboard' | 'crt' | 'scanner' | 'indices' | 'global-pulse' | 'smart-money' | 'analyst' | 'lab' | 'backtest' | 'rules' | 'login';
+type View = 'dashboard' | 'algos' | 'india-crt' | 'scanner' | 'crt' | 'indices' | 'global-pulse' | 'smart-money' | 'analyst' | 'lab' | 'backtest' | 'rules' | 'login';
 
 export const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<View>('algos');
+  const [currentView, setCurrentView] = useState<View>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [quotes, setQuotes] = useState<Record<string, YahooQuote>>(() => yahooFinanceService.getAllQuotes());
   const [isSyncingYahoo, setIsSyncingYahoo] = useState(false);
@@ -114,6 +115,7 @@ export const App: React.FC = () => {
         />
       );
       case 'crt': return <CRTStrategy />;
+      case 'india-crt': return <IndiaCrtDashboardPanel darkMode={darkMode} />;
       case 'scanner': return <Scanner5Hub />;
       case 'indices': return <IndicesTracker darkMode={darkMode} />;
       case 'global-pulse': return <GlobalPulse />;
@@ -123,7 +125,7 @@ export const App: React.FC = () => {
       case 'backtest': return <Backtest />;
       case 'rules': return <StrategyRules />;
       case 'login': return <BrokerConnect />;
-      default: return <AlgosEngine />;
+      default: return <Dashboard darkMode={darkMode} onNavigateToLogin={() => setCurrentView('login')} onNavigateToSmartMoney={() => setCurrentView('smart-money')} onNavigateToAlgos={() => setCurrentView('algos')} />;
     }
   }, [currentView, darkMode]);
 
@@ -131,15 +133,16 @@ export const App: React.FC = () => {
     {
       title: 'QUANT EXECUTION',
       items: [
+        { view: 'dashboard' as View, icon: LayoutDashboard, label: 'MISSION CONTROL', badge: 'ACTIVE' },
         { view: 'algos' as View, icon: Zap, label: 'ALGO BOTS', badge: 'ACTIVE' },
-        { view: 'dashboard' as View, icon: LayoutDashboard, label: 'MISSION CONTROL' },
         { view: 'crt' as View, icon: Maximize2, label: 'CRT RANGE MAP', badge: 'AYUB RANA' },
       ]
     },
     {
       title: 'MARKET RADAR',
       items: [
-        { view: 'scanner' as View, icon: Radar, label: 'CRT & SCANNER 5.0', badge: 'ACTIVE' },
+        { view: 'india-crt' as View, icon: Crosshair, label: 'INDIA CRT SCANNER', badge: 'ACTIVE' },
+        { view: 'scanner' as View, icon: Radar, label: 'SCANNER 5.0', badge: 'ACTIVE' },
         { view: 'indices' as View, icon: List, label: 'TAPE TICKER' },
         { view: 'global-pulse' as View, icon: Globe, label: 'GLOBAL PULSE' },
         { view: 'smart-money' as View, icon: Layers, label: 'SMC STRUCT' },
@@ -415,10 +418,10 @@ export const App: React.FC = () => {
       {/* Mobile Bottom Dock */}
       <div className="lg:hidden hud-panel border-t border-black/5 dark:border-white/10 flex items-center justify-around py-2.5 px-3 z-30">
         {[
-          { id: 'algos' as View, icon: Zap, label: 'Algos' },
+          { id: 'dashboard' as View, icon: LayoutDashboard, label: 'Dashboard' },
+          { id: 'india-crt' as View, icon: Crosshair, label: 'India CRT' },
           { id: 'scanner' as View, icon: Radar, label: 'Scan 5.0' },
-          { id: 'crt' as View, icon: Maximize2, label: 'CRT' },
-          { id: 'indices' as View, icon: List, label: 'Tape' },
+          { id: 'algos' as View, icon: Zap, label: 'Algos' },
           { id: 'analyst' as View, icon: TrendingUp, label: 'Copilot' },
         ].map((tab) => (
           <button

@@ -20,6 +20,7 @@ import {
 import {
   NSE_UNIVERSE,
   BSE_UNIVERSE,
+  US_UNIVERSE,
   INDIA_CRT_CORE_UNIVERSE,
   UniverseItem,
   MonthlyDailyCRTResult,
@@ -29,6 +30,8 @@ import {
   Scanner5IntradayORBResult,
   DerivativesRow,
   RiskAuditInput,
+  Scanner5BacktestReport,
+  PaperLedgerPosition,
   fetchScannerCandles,
   analyzeMonthlyDailyCRT,
   analyzeMTFCisdConfluence,
@@ -38,10 +41,13 @@ import {
   computeSectorStrength,
   auditTradeRisk,
   parseDerivativesCsv,
+  runScanner5BreakoutBacktest,
+  sizeScanner5PaperPosition,
+  buildScanner5Alerts,
 } from '../services/scanner5Service';
 import { ClaudeService } from '../services/claudeService';
 
-type ScannerTab = 'crt-cisd' | 'equity-5' | 'intraday-orb' | 'sectors-fo' | 'risk-guard';
+type ScannerTab = 'crt-cisd' | 'equity-5' | 'intraday-orb' | 'sectors-fo' | 'risk-guard' | 'paper-backtest';
 
 const SETUP_LABELS: Record<string, string> = {
   breakout_20d: '20D Breakout',
@@ -65,8 +71,8 @@ export const Scanner5Hub: React.FC = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [copiedSetup, setCopiedSetup] = useState(false);
 
-  // --- Scanner 5.0 NSE/BSE Daily State ---
-  const [exchange, setExchange] = useState<'NSE' | 'BSE'>('NSE');
+  // --- Scanner 5.0 NSE/BSE/US Daily State ---
+  const [exchange, setExchange] = useState<'NSE' | 'BSE' | 'US'>('NSE');
   const [customTickersInput, setCustomTickersInput] = useState('');
   const [dailyResults, setDailyResults] = useState<Scanner5DailyResult[]>([]);
   const [dailyLoading, setDailyLoading] = useState(false);
@@ -108,6 +114,26 @@ export const Scanner5Hub: React.FC = () => {
     targetPrice: 26100,
     quantity: 50,
   });
+
+  // --- Paper Portfolio & Scanner 5.0 Backtest State ---
+  const [paperCapital, setPaperCapital] = useState(500000);
+  const [paperSymbol, setPaperSymbol] = useState('RELIANCE.NS');
+  const [paperEntry, setPaperEntry] = useState(1285);
+  const [paperStop, setPaperStop] = useState(1245);
+  const [paperRiskPct, setPaperRiskPct] = useState(0.5);
+  const [paperLedger, setPaperLedger] = useState<PaperLedgerPosition[]>(() => {
+    try {
+      const saved = localStorage.getItem('scanner5_paper_ledger');
+      return saved ? (JSON.parse(saved) as PaperLedgerPosition[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [s5BtSymbol, setS5BtSymbol] = useState('RELIANCE.NS');
+  const [s5BtRange, setS5BtRange] = useState<'1y' | '2y' | '3y'>('2y');
+  const [s5BtReport, setS5BtReport] = useState<Scanner5BacktestReport | null>(null);
+  const [s5BtLoading, setS5BtLoading] = useState(false);
+  const [s5BtError, setS5BtError] = useState<string | null>(null);
 
   // 1. Run Monthly-Daily CRT Scan across Core India + Gold Universe
   const runCrtUniverseScan = useCallback(async () => {
@@ -162,12 +188,13 @@ export const Scanner5Hub: React.FC = () => {
     }
   }, []);
 
-  // 3. Run Scanner 5.0 Daily NSE / BSE Equity Scan
+  // 3. Run Scanner 5.0 Daily NSE / BSE / US Equity Scan
   const runEquityScan = useCallback(async () => {
     setDailyLoading(true);
     setDailyError(null);
     try {
-      const baseList: UniverseItem[] = exchange === 'NSE' ? NSE_UNIVERSE : BSE_UNIVERSE;
+      const baseList: UniverseItem[] =
+        exchange === 'NSE' ? NSE_UNIVERSE : exchange === 'BSE' ? BSE_UNIVERSE : US_UNIVERSE;
       const extraTokens = customTickersInput
         .split(',')
         .map((s) => s.trim().toUpperCase())
@@ -175,7 +202,13 @@ export const Scanner5Hub: React.FC = () => {
         .slice(0, 5)
         .map((raw): UniverseItem => {
           const hasSuffix = raw.includes('.') || raw.startsWith('^') || raw.includes('=');
-          const sym = hasSuffix ? raw : exchange === 'NSE' ? `${raw}.NS` : `${raw}.BO`;
+          const sym = hasSuffix
+            ? raw
+            : exchange === 'NSE'
+              ? `${raw}.NS`
+              : exchange === 'BSE'
+                ? `${raw}.BO`
+                : raw;
           return {
             symbol: sym,
             shortCode: raw.replace(/\.(NS|BO)$/, ''),
@@ -201,7 +234,7 @@ export const Scanner5Hub: React.FC = () => {
         setDailyError(`Data unavailable for ${errors.length} symbols.`);
       }
     } catch (err) {
-      setDailyError(err instanceof Error ? err.message : 'Failed to run NSE/BSE Scanner 5.0.');
+      setDailyError(err instanceof Error ? err.message : 'Failed to run Scanner 5.0.');
     } finally {
       setDailyLoading(false);
     }
@@ -212,7 +245,8 @@ export const Scanner5Hub: React.FC = () => {
     setOrbLoading(true);
     setOrbError(null);
     try {
-      const list = exchange === 'NSE' ? NSE_UNIVERSE.slice(0, 24) : BSE_UNIVERSE;
+      const list =
+        exchange === 'NSE' ? NSE_UNIVERSE.slice(0, 24) : exchange === 'BSE' ? BSE_UNIVERSE : US_UNIVERSE;
       const { candlesBySymbol } = await fetchScannerCandles(
         list.map((u) => u.symbol),
         '5m',
@@ -228,6 +262,26 @@ export const Scanner5Hub: React.FC = () => {
       setOrbLoading(false);
     }
   }, [exchange, volumeMultiple]);
+
+  const runS5BreakoutBt = useCallback(async () => {
+    setS5BtLoading(true);
+    setS5BtError(null);
+    try {
+      const sym = s5BtSymbol.trim().toUpperCase();
+      const { candlesBySymbol, errors } = await fetchScannerCandles([sym], '1d', s5BtRange);
+      const bars = candlesBySymbol[sym] ?? [];
+      if (bars.length < 30) {
+        setS5BtReport(null);
+        setS5BtError(errors[0]?.error || `Insufficient historical bars for ${sym}.`);
+      } else {
+        setS5BtReport(runScanner5BreakoutBacktest(bars, paperCapital));
+      }
+    } catch (err) {
+      setS5BtError(err instanceof Error ? err.message : 'Failed to run Scanner 5.0 breakout backtest.');
+    } finally {
+      setS5BtLoading(false);
+    }
+  }, [s5BtSymbol, s5BtRange, paperCapital]);
 
   // Initial load for primary CRT tab
   useEffect(() => {
@@ -291,6 +345,43 @@ export const Scanner5Hub: React.FC = () => {
 
   const sectorRows = useMemo(() => computeSectorStrength(dailyResults), [dailyResults]);
   const riskResult = useMemo(() => auditTradeRisk(riskInput), [riskInput]);
+  const alertsFeed = useMemo(
+    () => buildScanner5Alerts(dailyResults, orbComputedRows, volumeMultiple),
+    [dailyResults, orbComputedRows, volumeMultiple]
+  );
+  const paperSizing = useMemo(
+    () => sizeScanner5PaperPosition(paperCapital, paperEntry, paperStop, paperRiskPct, 20),
+    [paperCapital, paperEntry, paperStop, paperRiskPct]
+  );
+
+  const handleRecordPaperTrade = () => {
+    if (!paperSizing.valid || paperSizing.quantity <= 0) return;
+    const normSym = paperSymbol.trim().toUpperCase();
+    const pos: PaperLedgerPosition = {
+      id: `${Date.now()}`,
+      symbol: normSym,
+      exchange: normSym.endsWith('.BO') ? 'BSE' : normSym.startsWith('^') ? 'INDEX' : normSym.endsWith('.NS') ? 'NSE' : 'US',
+      entry: paperEntry,
+      stop: paperStop,
+      quantity: paperSizing.quantity,
+      notional: paperSizing.notional,
+      estimatedMaxLoss: paperSizing.estimatedMaxLoss,
+      recordedAt: new Date().toLocaleTimeString('en-IN'),
+    };
+    const next = [pos, ...paperLedger];
+    setPaperLedger(next);
+    try {
+      localStorage.setItem('scanner5_paper_ledger', JSON.stringify(next));
+    } catch {}
+  };
+
+  const handleDeletePaperTrade = (id: string) => {
+    const next = paperLedger.filter((p) => p.id !== id);
+    setPaperLedger(next);
+    try {
+      localStorage.setItem('scanner5_paper_ledger', JSON.stringify(next));
+    } catch {}
+  };
 
   const selectedCrtRow = useMemo(
     () => crtResults.find((r) => r.symbol === selectedSymbol) ?? null,
@@ -373,10 +464,11 @@ export const Scanner5Hub: React.FC = () => {
           {(
             [
               { id: 'crt-cisd', label: 'CRT + CISD (MTF)' },
-              { id: 'equity-5', label: 'NSE / BSE Scanner 5.0' },
+              { id: 'equity-5', label: 'NSE / BSE / US 5.0' },
               { id: 'intraday-orb', label: '15m ORB + Volume' },
               { id: 'sectors-fo', label: 'Sectors & F&O' },
               { id: 'risk-guard', label: 'Risk Guard' },
+              { id: 'paper-backtest', label: 'Paper, Alerts & Backtest' },
             ] as const
           ).map((tab) => (
             <button
@@ -708,12 +800,13 @@ export const Scanner5Hub: React.FC = () => {
           <div className="hud-panel border border-black/10 dark:border-white/10 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center p-1 rounded-lg bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10">
-                {(['NSE', 'BSE'] as const).map((ex) => (
+                {(['NSE', 'BSE', 'US'] as const).map((ex) => (
                   <button
                     key={ex}
                     onClick={() => {
                       setExchange(ex);
                       setDailyResults([]);
+                      setOrbResults([]);
                     }}
                     className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors ${
                       exchange === ex
@@ -721,7 +814,7 @@ export const Scanner5Hub: React.FC = () => {
                         : 'text-slate-600 dark:text-slate-300 hover:text-white'
                     }`}
                   >
-                    {ex === 'NSE' ? 'NSE (.NS 30 Stocks)' : 'BSE (.BO 20 Scrips)'}
+                    {ex === 'NSE' ? 'NSE (.NS 30)' : ex === 'BSE' ? 'BSE (.BO 20)' : 'US (NASDAQ/NYSE 15)'}
                   </button>
                 ))}
               </div>
@@ -1382,6 +1475,296 @@ export const Scanner5Hub: React.FC = () => {
               <div className="pt-3 border-t border-black/10 dark:border-white/10 text-xs font-mono text-emerald-400 flex items-center gap-2">
                 <TrendingUp size={14} />
                 <span>All capital, stop-loss, R:R, and position limits cleared.</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* =================================================================== */}
+      {/* TAB 6: PAPER PORTFOLIO, ALERTS & DAILY BREAKOUT BACKTEST (Scanner 5) */}
+      {/* =================================================================== */}
+      {activeTab === 'paper-backtest' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Conservative Paper Sizer + Ledger (paper.py + portfolio.py) */}
+            <div className="lg:col-span-7 hud-panel border border-black/10 dark:border-white/10 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-black/10 dark:border-white/10 pb-3">
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Scanner 5.0 Conservative Paper Position Sizer &amp; Ledger
+                  </h2>
+                  <p className="text-xs font-mono text-slate-500 mt-0.5">
+                    Max 0.5% risk per trade &amp; 20% single-name cap · Paper only (never calls broker)
+                  </p>
+                </div>
+                <button
+                  onClick={handleRecordPaperTrade}
+                  disabled={!paperSizing.valid || paperSizing.quantity <= 0}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-mono font-bold"
+                >
+                  Record Paper Position
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs font-mono">
+                <label className="space-y-1">
+                  <span className="text-slate-500">Symbol</span>
+                  <input
+                    type="text"
+                    value={paperSymbol}
+                    onChange={(e) => setPaperSymbol(e.target.value.toUpperCase())}
+                    className="w-full px-2.5 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-slate-900 dark:text-white font-bold"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-slate-500">Capital</span>
+                  <input
+                    type="number"
+                    value={paperCapital}
+                    onChange={(e) => setPaperCapital(Math.max(1000, Number(e.target.value)))}
+                    className="w-full px-2.5 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-slate-900 dark:text-white tabular-nums"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-slate-500">Entry</span>
+                  <input
+                    type="number"
+                    value={paperEntry}
+                    onChange={(e) => setPaperEntry(Number(e.target.value))}
+                    className="w-full px-2.5 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-slate-900 dark:text-white tabular-nums"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-slate-500">Stop Loss</span>
+                  <input
+                    type="number"
+                    value={paperStop}
+                    onChange={(e) => setPaperStop(Number(e.target.value))}
+                    className="w-full px-2.5 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-rose-400 tabular-nums"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-slate-500">Risk % (≤0.5)</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="0.05"
+                    max="0.5"
+                    value={paperRiskPct}
+                    onChange={(e) => setPaperRiskPct(Math.min(0.5, Math.max(0.05, Number(e.target.value))))}
+                    className="w-full px-2.5 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-cyan-400 tabular-nums"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono p-3 rounded-lg bg-black/5 dark:bg-white/[0.03] border border-black/5 dark:border-white/5 tabular-nums">
+                <div>
+                  <div className="text-slate-500">Sized Qty</div>
+                  <div className="text-sm font-black text-cyan-400">{paperSizing.quantity}</div>
+                </div>
+                <div>
+                  <div className="text-slate-500">Notional Value</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">
+                    ₹{paperSizing.notional.toLocaleString('en-IN')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-slate-500">Risk / Share</div>
+                  <div className="text-sm font-bold text-slate-300">₹{paperSizing.riskPerShare}</div>
+                </div>
+                <div>
+                  <div className="text-slate-500">Est. Max Loss</div>
+                  <div className="text-sm font-bold text-rose-400">
+                    ₹{paperSizing.estimatedMaxLoss.toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+
+              {paperLedger.length > 0 ? (
+                <div className="overflow-x-auto border border-black/10 dark:border-white/10 rounded-lg max-h-60">
+                  <table className="w-full text-left text-xs font-mono tabular-nums">
+                    <thead>
+                      <tr className="border-b border-black/10 dark:border-white/10 text-slate-500 bg-black/[0.02] dark:bg-white/[0.02]">
+                        <th className="py-2 px-3">Symbol</th>
+                        <th className="py-2 px-3 text-right">Qty</th>
+                        <th className="py-2 px-3 text-right">Entry</th>
+                        <th className="py-2 px-3 text-right">Stop</th>
+                        <th className="py-2 px-3 text-right">Max Loss</th>
+                        <th className="py-2 px-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                      {paperLedger.map((pos) => (
+                        <tr key={pos.id}>
+                          <td className="py-2 px-3 font-bold text-slate-900 dark:text-white">
+                            {pos.symbol} <span className="text-[10px] text-slate-500">({pos.exchange})</span>
+                          </td>
+                          <td className="py-2 px-3 text-right">{pos.quantity}</td>
+                          <td className="py-2 px-3 text-right">₹{pos.entry}</td>
+                          <td className="py-2 px-3 text-right text-rose-400">₹{pos.stop}</td>
+                          <td className="py-2 px-3 text-right text-amber-400">₹{pos.estimatedMaxLoss}</td>
+                          <td className="py-2 px-3 text-right">
+                            <button
+                              onClick={() => handleDeletePaperTrade(pos.id)}
+                              className="text-rose-400 hover:underline font-bold"
+                            >
+                              Close
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-xs font-mono text-slate-500 py-2">
+                  No open paper ledger positions recorded yet.
+                </div>
+              )}
+            </div>
+
+            {/* Scanner 5.0 Live Alerts Feed (alerts.py) */}
+            <div className="lg:col-span-5 hud-panel border border-black/10 dark:border-white/10 rounded-xl p-5 space-y-3">
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white border-b border-black/10 dark:border-white/10 pb-3">
+                Scanner 5.0 Live Alerts Feed ({alertsFeed.length})
+              </h2>
+              {alertsFeed.length === 0 ? (
+                <div className="py-8 text-center text-xs font-mono text-slate-400">
+                  Run Daily Equity or 15m ORB scan to populate conservative watchlist &amp; volume alerts.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1 text-xs font-mono">
+                  {alertsFeed.map((a, idx) => (
+                    <div
+                      key={`${a.symbol}-${a.type}-${idx}`}
+                      className="p-2.5 rounded-lg bg-black/5 dark:bg-white/[0.03] border border-black/5 dark:border-white/10 flex flex-col gap-0.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-900 dark:text-white">{a.symbol}</span>
+                        <span
+                          className={`text-[10px] font-bold uppercase ${
+                            a.type === 'intraday_orb_volume_confirmed'
+                              ? 'text-emerald-400'
+                              : a.type === 'daily_setup_watch'
+                                ? 'text-cyan-400'
+                                : 'text-amber-400'
+                          }`}
+                        >
+                          {a.type.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-400">{a.detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Scanner 5.0 Daily Breakout Backtest (backtest.py) */}
+          <div className="hud-panel border border-black/10 dark:border-white/10 rounded-xl p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/10 dark:border-white/10 pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Scanner 5.0 Daily 20D Breakout Backtest (trader-india/backtest.py)
+                </h2>
+                <p className="text-xs font-mono text-slate-500 mt-0.5">
+                  20D high close breakout · 5D swing low stop · 0.5% risk sizing &amp; 15bps fees+slippage
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+                <input
+                  type="text"
+                  value={s5BtSymbol}
+                  onChange={(e) => setS5BtSymbol(e.target.value.toUpperCase())}
+                  placeholder="RELIANCE.NS or AAPL"
+                  className="px-3 py-1.5 rounded bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-slate-900 dark:text-white font-bold w-40"
+                />
+                <select
+                  value={s5BtRange}
+                  onChange={(e) => setS5BtRange(e.target.value as '1y' | '2y' | '3y')}
+                  className="px-3 py-1.5 rounded bg-black/5 dark:bg-[#0b1224] border border-black/10 dark:border-white/10 text-slate-900 dark:text-white"
+                >
+                  <option value="1y">1 Year</option>
+                  <option value="2y">2 Years</option>
+                  <option value="3y">3 Years</option>
+                </select>
+                <button
+                  onClick={runS5BreakoutBt}
+                  disabled={s5BtLoading}
+                  className="px-4 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 text-slate-950 font-bold flex items-center gap-1.5"
+                >
+                  <RefreshCw size={13} className={s5BtLoading ? 'animate-spin' : ''} />
+                  <span>{s5BtLoading ? 'Backtesting...' : 'Run 20D Breakout Backtest'}</span>
+                </button>
+              </div>
+            </div>
+
+            {s5BtError && <div className="text-xs font-mono text-rose-400">{s5BtError}</div>}
+
+            {s5BtReport && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs font-mono tabular-nums">
+                  <div className="p-3 rounded-lg bg-black/5 dark:bg-white/[0.03]">
+                    <div className="text-slate-500">Trades</div>
+                    <div className="text-base font-bold text-slate-900 dark:text-white">{s5BtReport.tradeCount}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-black/5 dark:bg-white/[0.03]">
+                    <div className="text-slate-500">Win Rate</div>
+                    <div className="text-base font-bold text-cyan-400">{s5BtReport.winRatePct}%</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-black/5 dark:bg-white/[0.03]">
+                    <div className="text-slate-500">Net PnL</div>
+                    <div className={`text-base font-bold ${s5BtReport.netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      ₹{s5BtReport.netPnl.toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-black/5 dark:bg-white/[0.03]">
+                    <div className="text-slate-500">Profit Factor</div>
+                    <div className="text-base font-bold text-amber-400">{s5BtReport.profitFactor ?? '—'}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-black/5 dark:bg-white/[0.03]">
+                    <div className="text-slate-500">Max Drawdown</div>
+                    <div className="text-base font-bold text-rose-400">{s5BtReport.maxDrawdownPct}%</div>
+                  </div>
+                </div>
+
+                {s5BtReport.trades.length > 0 && (
+                  <div className="overflow-x-auto border border-black/10 dark:border-white/10 rounded-lg max-h-64">
+                    <table className="w-full text-left text-xs font-mono tabular-nums">
+                      <thead>
+                        <tr className="border-b border-black/10 dark:border-white/10 text-slate-500 bg-black/[0.02] dark:bg-white/[0.02]">
+                          <th className="py-2 px-3">Entry Date</th>
+                          <th className="py-2 px-3">Exit Date</th>
+                          <th className="py-2 px-3 text-right">Entry</th>
+                          <th className="py-2 px-3 text-right">Stop</th>
+                          <th className="py-2 px-3 text-right">Exit</th>
+                          <th className="py-2 px-3 text-right">Qty</th>
+                          <th className="py-2 px-3 text-right">Net PnL</th>
+                          <th className="py-2 px-3">Exit Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                        {s5BtReport.trades.map((t, i) => (
+                          <tr key={`${t.entryDate}-${i}`}>
+                            <td className="py-2 px-3">{t.entryDate}</td>
+                            <td className="py-2 px-3">{t.exitDate}</td>
+                            <td className="py-2 px-3 text-right">{t.entry}</td>
+                            <td className="py-2 px-3 text-right text-rose-400">{t.stop}</td>
+                            <td className="py-2 px-3 text-right">{t.exit}</td>
+                            <td className="py-2 px-3 text-right">{t.qty}</td>
+                            <td className={`py-2 px-3 text-right font-bold ${t.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {t.pnl >= 0 ? '+' : ''}
+                              {t.pnl}
+                            </td>
+                            <td className="py-2 px-3 text-slate-400">{t.reason}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
