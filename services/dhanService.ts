@@ -51,18 +51,18 @@ export const DHAN_SECURITY_MAP: Record<string, { secId: string; segment: string 
 };
 
 const BASELINE_CLOSES: Record<string, number> = {
-  nifty: 23660.65,
-  bank_nifty: 55580.40,
-  fin_nifty: 25094.85,
-  midcap: 60906.00,
-  next_50: 71200.00,
-  sensex: 73895.74,
-  bankex: 57900.20,
-  nifty_it: 28160.90,
-  nifty_auto: 24150.00,
-  nifty_fmcg: 59300.00,
-  nifty_pharma: 22100.00,
-  nifty_metal: 9450.30
+  nifty: 25880.10,
+  bank_nifty: 63901.05,
+  fin_nifty: 28945.80,
+  midcap: 17807.75,
+  next_50: 72779.15,
+  sensex: 84210.60,
+  bankex: 72696.05,
+  nifty_it: 32227.65,
+  nifty_auto: 28787.65,
+  nifty_fmcg: 48535.70,
+  nifty_pharma: 28386.90,
+  nifty_metal: 12271.10
 };
 
 class DhanApiService implements UnifiedBrokerService {
@@ -124,7 +124,14 @@ class DhanApiService implements UnifiedBrokerService {
     const saved = localStorage.getItem(this.CACHE_KEY);
     if (saved) {
       try {
-        this.closingPrices = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        const now = Date.now();
+        const niftyTs = parsed?.nifty?.timestamp ?? 0;
+        if (now - niftyTs < 60 * 60 * 1000) {
+          this.closingPrices = parsed;
+        } else {
+          localStorage.removeItem(this.CACHE_KEY);
+        }
       } catch (e) {}
     }
 
