@@ -112,7 +112,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // Ayub Rana CRT Calculated Boundary Metrics for selected symbol
   const crtMetrics = useMemo(() => {
-    const price = activeYahooQuote?.price || selectedIndex?.price || 24850;
+    const price = activeYahooQuote?.price || selectedIndex?.price || yahooFinanceService.getPriceByAssetName('NIFTY');
     const isBullish = (selectedIndex?.difference || 0) >= 0;
     const rangeHeight = price * 0.0075; // Approx 15m/1H CRT range
     const crtHigh = Number((price + rangeHeight * 0.6).toFixed(1));

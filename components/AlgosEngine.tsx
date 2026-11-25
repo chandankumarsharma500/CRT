@@ -265,7 +265,7 @@ export const AlgosEngine: React.FC = () => {
 
   // Terminal Logs
   const [logs, setLogs] = useState<AlgoLog[]>([
-    { id: '1', timestamp: '10:14:22', type: 'SIGNAL', message: 'CRT 0.5 EQ Bot: 15m candle sweep confirmed on NIFTY. Dispatched BUY order for NIFTY 24850 CE.' },
+    { id: '1', timestamp: '10:14:22', type: 'SIGNAL', message: 'CRT 0.5 EQ Bot: 15m candle sweep confirmed on NIFTY. Dispatched BUY order for NIFTY 25800 CE.' },
     { id: '2', timestamp: '10:14:23', type: 'EXECUTION', message: `Broker Gateway (${selectedBroker}): Order ORD-98214 FILLED @ ₹142.50. Risk/Reward 1:2.5 active.` },
     { id: '3', timestamp: '10:20:00', type: 'INFO', message: 'Risk Guardian: Trailing Stop-Loss active. Trailing by 15.00 points.' },
     { id: '4', timestamp: '10:25:10', type: 'CLAUDE', message: 'Claude Copilot: Ayub Rana CRT PDF model calibrated with Yahoo Finance Live ticks.' },
@@ -337,7 +337,7 @@ export const AlgosEngine: React.FC = () => {
       tickCounter++;
 
       const liveNifty = yahooFinanceService.getQuote('nifty');
-      const liveSpot = liveNifty?.price || 25800.60;
+      const liveSpot = liveNifty?.price || 25897.60;
       const spotDelta = lastNiftySpotRef.current !== null ? liveSpot - lastNiftySpotRef.current : 0;
       lastNiftySpotRef.current = liveSpot;
 
@@ -391,7 +391,7 @@ export const AlgosEngine: React.FC = () => {
         if (activeStrats.length === 0) return;
 
         const chosenStrat = activeStrats[tickCounter % activeStrats.length];
-        const ltp = liveNifty?.price || 25800.60;
+        const ltp = liveNifty?.price || 25897.60;
         const strike = Math.round(ltp / 50) * 50;
         const isCall = (liveNifty?.change ?? 0) >= 0;
         const optSymbol = `NIFTY ${strike} ${isCall ? 'CE' : 'PE'}`;
@@ -541,7 +541,7 @@ export const AlgosEngine: React.FC = () => {
       addLog('CLAUDE', 'AI Copilot Executed: Yahoo Finance live prices refreshed across all instruments.');
     } else if (action.type === 'EXECUTE_TRADE') {
       const niftyQuote = yahooFinanceService.getQuote('nifty');
-      const liveSpot = niftyQuote?.price || 25800.60;
+      const liveSpot = niftyQuote?.price || 25897.60;
       const atmStrike = Math.round(liveSpot / 50) * 50;
       const sym = action.symbol || `NIFTY ${atmStrike} CE`;
       const side = action.side || 'BUY';
@@ -692,7 +692,7 @@ export const AlgosEngine: React.FC = () => {
     const strat = activeStrats[Math.floor(Math.random() * activeStrats.length)] || strategies[0];
     
     const niftyQuote = yahooFinanceService.getQuote('nifty');
-    const spotPrice = niftyQuote?.price || 25800.60;
+    const spotPrice = niftyQuote?.price || 25897.60;
     const atmStrike = Math.round(spotPrice / 50) * 50;
     const optType = (niftyQuote?.change ?? 0) >= 0 ? 'CE' : 'PE';
     const dynamicSymbol = `NIFTY ${atmStrike} ${optType}`;

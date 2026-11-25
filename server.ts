@@ -426,10 +426,16 @@ async function startServer() {
 
   let yahooQuotesCache: { timestamp: number; quotes: Record<string, unknown> } | null = null;
 
-  app.get('/api/yahoo-quotes', async (_req: Request, res: Response) => {
+  app.get('/api/yahoo-quotes', async (req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     try {
       const now = Date.now();
-      if (yahooQuotesCache && now - yahooQuotesCache.timestamp < 3500) {
+      const force = req.query.force === '1' || req.query.force === 'true';
+      if (!force && yahooQuotesCache && now - yahooQuotesCache.timestamp < 3000) {
         res.json({ status: 'YAHOO_LIVE', cached: true, ...yahooQuotesCache });
         return;
       }
@@ -437,7 +443,7 @@ async function startServer() {
       const results = await Promise.all(
         YAHOO_QUOTE_SYMBOLS.map(async (item) => {
           try {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?interval=1d&range=1d`;
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?interval=1d&range=1d&_=${now}`;
             const resp = await fetch(url, {
               headers: { 'User-Agent': BROWSER_USER_AGENT },
               signal: AbortSignal.timeout(4500),
@@ -509,9 +515,82 @@ async function startServer() {
     }
   });
 
+  // --- Live Global Indices & Crypto Quotes via Yahoo Finance ---
+  const GLOBAL_YAHOO_SYMBOLS: Array<{ id: string; symbol: string; displaySymbol: string; name: string; category: 'INDEX' | 'CRYPTO' }> = [
+    { id: 'spx', symbol: '^GSPC', displaySymbol: 'SPX', name: 'S&P 500', category: 'INDEX' },
+    { id: 'ndx', symbol: '^IXIC', displaySymbol: 'IXIC', name: 'Nasdaq Composite', category: 'INDEX' },
+    { id: 'dxy', symbol: 'DX-Y.NYB', displaySymbol: 'DXY', name: 'US Dollar Index', category: 'INDEX' },
+    { id: 'us10y', symbol: '^TNX', displaySymbol: 'US10Y', name: 'US 10Y Yield', category: 'INDEX' },
+    { id: 'vix', symbol: '^VIX', displaySymbol: 'VIX', name: 'Volatility Index', category: 'INDEX' },
+    { id: 'btc', symbol: 'BTC-USD', displaySymbol: 'BTC/USD', name: 'Bitcoin', category: 'CRYPTO' },
+    { id: 'eth', symbol: 'ETH-USD', displaySymbol: 'ETH/USD', name: 'Ethereum', category: 'CRYPTO' },
+    { id: 'sol', symbol: 'SOL-USD', displaySymbol: 'SOL/USD', name: 'Solana', category: 'CRYPTO' },
+  ];
+
+  app.get('/api/global-quotes', async (_req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    try {
+      const now = Date.now();
+      const settled = await Promise.all(
+        GLOBAL_YAHOO_SYMBOLS.map(async (item) => {
+          try {
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.symbol)}?interval=1d&range=1d&_=${now}`;
+            const resp = await fetch(url, {
+              headers: { 'User-Agent': BROWSER_USER_AGENT },
+              signal: AbortSignal.timeout(4500),
+            });
+            if (!resp.ok) return null;
+            const data = (await resp.json()) as {
+              chart?: {
+                result?: Array<{
+                  meta?: {
+                    regularMarketPrice?: number;
+                    chartPreviousClose?: number;
+                    previousClose?: number;
+                    regularMarketChange?: number;
+                    regularMarketChangePercent?: number;
+                  };
+                }>;
+              };
+            };
+            const meta = data?.chart?.result?.[0]?.meta;
+            if (!meta || typeof meta.regularMarketPrice !== 'number' || meta.regularMarketPrice <= 0) {
+              return null;
+            }
+            const price = meta.regularMarketPrice;
+            const prev = meta.chartPreviousClose ?? meta.previousClose ?? price;
+            const change = meta.regularMarketChange ?? price - prev;
+            const percentChange = meta.regularMarketChangePercent ?? (prev > 0 ? (change / prev) * 100 : 0);
+            return {
+              id: item.id,
+              symbol: item.displaySymbol,
+              name: item.name,
+              category: item.category,
+              price: Number(price.toFixed(2)),
+              change: Number(change.toFixed(2)),
+              percentChange: Number(percentChange.toFixed(2)),
+              trend: percentChange >= 0 ? 'Bullish' : 'Bearish',
+            };
+          } catch {
+            return null;
+          }
+        })
+      );
+      const assets = settled.filter((x): x is NonNullable<typeof x> => x !== null);
+      res.json({ status: 'GLOBAL_YAHOO_LIVE', timestamp: now, assets });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ status: 'ERROR', error: message, assets: [] });
+    }
+  });
+
   // --- Existing Market Data Endpoints & Proxies ---
   app.get('/api/live-stream', async (_req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     try {
       const tvTickers = [
         'NSE:NIFTY',

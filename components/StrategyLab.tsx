@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Cpu, 
   Bot, 
@@ -8,10 +8,20 @@ import {
 } from 'lucide-react';
 import { AIAgentView } from './AIAgentView';
 import { QuantumCoreMetricsView } from './QuantumCoreMetricsView';
+import { yahooFinanceService } from '../services/yahooFinanceService';
 
 export const StrategyLab: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'AI_AGENT' | 'QUANTUM_CORE'>('AI_AGENT');
     const [selectedAsset, setSelectedAsset] = useState<string>('NIFTY');
+    const [livePrice, setLivePrice] = useState<number>(() => yahooFinanceService.getPriceByAssetName('NIFTY'));
+
+    useEffect(() => {
+        setLivePrice(yahooFinanceService.getPriceByAssetName(selectedAsset));
+        const unsub = yahooFinanceService.subscribe(() => {
+            setLivePrice(yahooFinanceService.getPriceByAssetName(selectedAsset));
+        });
+        return () => unsub();
+    }, [selectedAsset]);
 
     return (
         <div className="space-y-6 pb-20 animate-in fade-in duration-700">
@@ -112,7 +122,7 @@ export const StrategyLab: React.FC = () => {
                     </div>
                     <QuantumCoreMetricsView 
                         symbol={selectedAsset}
-                        currentPrice={selectedAsset === 'NIFTY' ? 24850 : selectedAsset === 'BANKNIFTY' ? 51200 : selectedAsset === 'FINNIFTY' ? 23400 : selectedAsset === 'CRUDEOIL' ? 6250 : 72400}
+                        currentPrice={livePrice}
                     />
                 </div>
             )}

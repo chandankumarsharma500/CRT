@@ -23,6 +23,7 @@ import { SMCZone, SMCAIRefinedTrade, SMCPremiumDiscountMatrix } from '../types';
 import { SmartMoneyLogic } from '../services/smartMoneyLogic';
 import { AILogic } from '../services/aiLogic';
 import { ALL_INDICES } from '../services/dhanService';
+import { yahooFinanceService } from '../services/yahooFinanceService';
 
 interface SMCAIAgentRefinerProps {
   initialSymbol?: string;
@@ -34,7 +35,7 @@ export const SMCAIAgentRefiner: React.FC<SMCAIAgentRefinerProps> = ({
   allZones = {}
 }) => {
   const [selectedSymbol, setSelectedSymbol] = useState<string>(initialSymbol);
-  const [currentPrice, setCurrentPrice] = useState<number>(24850);
+  const [currentPrice, setCurrentPrice] = useState<number>(() => yahooFinanceService.getPriceByAssetName(initialSymbol));
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [refinedTrade, setRefinedTrade] = useState<SMCAIRefinedTrade | null>(null);
 
@@ -49,19 +50,9 @@ export const SMCAIAgentRefiner: React.FC<SMCAIAgentRefinerProps> = ({
   ]);
   const [isAnswering, setIsAnswering] = useState<boolean>(false);
 
-  // Default asset prices
+  // Live Yahoo Finance spot price lookup
   const getAssetPrice = (sym: string): number => {
-    switch (sym) {
-      case 'NIFTY': return 24850;
-      case 'BANKNIFTY': return 51200;
-      case 'FINNIFTY': return 23450;
-      case 'MIDCPNIFTY': return 12800;
-      case 'SENSEX': return 81900;
-      case 'BANKEX': return 58300;
-      case 'CRUDEOIL': return 6250;
-      case 'GOLD': return 72400;
-      default: return 24850;
-    }
+    return yahooFinanceService.getPriceByAssetName(sym);
   };
 
   const loadRefinedTrade = async (sym: string) => {
@@ -85,6 +76,10 @@ export const SMCAIAgentRefiner: React.FC<SMCAIAgentRefinerProps> = ({
 
   useEffect(() => {
     loadRefinedTrade(selectedSymbol);
+    const unsub = yahooFinanceService.subscribe(() => {
+      setCurrentPrice(yahooFinanceService.getPriceByAssetName(selectedSymbol));
+    });
+    return () => unsub();
   }, [selectedSymbol]);
 
   const handleSendMessage = async (e?: React.FormEvent) => {

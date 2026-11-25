@@ -202,7 +202,8 @@ export const App: React.FC = () => {
             const isUp = q.change >= 0;
             return (
               <div 
-                key={key} 
+                key={key}
+                title={`${q.name} · ${q.source || 'LIVE'} · ${q.lastUpdated}`}
                 className={`flex items-center gap-2 px-3 py-1 rounded bg-white/70 dark:bg-[#070c1d]/90 border border-black/5 dark:border-white/5 text-[11px] font-mono tracking-tight shrink-0 shadow-sm transition-all duration-300 ${
                   q.tickDirection === 'UP' ? 'border-emerald-500/30' : q.tickDirection === 'DOWN' ? 'border-rose-500/30' : ''
                 }`}
@@ -217,6 +218,16 @@ export const App: React.FC = () => {
               </div>
             );
           })}
+
+          <button
+            onClick={handleManualYahooSync}
+            disabled={isSyncingYahoo}
+            className="px-2.5 py-1 rounded bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 text-[10px] font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all"
+            title={`Force refresh live market quotes (${quotes['nifty']?.source || 'LIVE'} · ${quotes['nifty']?.lastUpdated || '--:--:--'})`}
+          >
+            <RefreshCw size={11} className={isSyncingYahoo ? 'animate-spin' : ''} />
+            <span>{isSyncingYahoo ? 'SYNCING' : 'SYNC LIVE'}</span>
+          </button>
         </div>
 
         {/* Action Controls & Fast Triggers (Right) */}

@@ -167,8 +167,9 @@ export const tradingViewService = {
 
     // 1. Try unified local live-stream endpoint (server-side fetched, CORS-free)
     try {
-      const res = await fetch('/api/live-stream');
-      if (res.ok) {
+      const res = await fetch(`/api/live-stream?_t=${Date.now()}`, { cache: 'no-store' });
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const streamData = await res.json();
         let updated = false;
 
@@ -224,12 +225,13 @@ export const tradingViewService = {
       }
     } catch (_) {}
 
-    // 2. Try Vite Local Proxy (/api/tv-scan/india/scan)
+    // 2. Direct CORS-safe TradingView Scanner POST (Content-Type: text/plain avoids CORS preflight on *.ai.studio)
     try {
-      const res = await fetch('/api/tv-scan/india/scan', {
+      const res = await fetch('https://scanner.tradingview.com/india/scan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: bodyPayload
+        headers: { 'Content-Type': 'text/plain' },
+        body: bodyPayload,
+        cache: 'no-store',
       });
       if (res.ok) {
         const data = await res.json();
@@ -240,10 +242,28 @@ export const tradingViewService = {
       }
     } catch (_) {}
 
-    // 3. Fallback to Yahoo chart v8 endpoint
+    // 3. Try local server proxy (/api/tv-scan/india/scan)
+    try {
+      const res = await fetch('/api/tv-scan/india/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: bodyPayload
+      });
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (parseResponse(data)) {
+          this.notify();
+          return { ...tvQuoteCache };
+        }
+      }
+    } catch (_) {}
+
+    // 4. Fallback to Yahoo chart v8 endpoint
     try {
       const res = await fetch('/api/yahoo-chart/v8/finance/chart/%5ENSEI?interval=1d&range=1d');
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const yData = await res.json();
         const price = yData?.chart?.result?.[0]?.meta?.regularMarketPrice;
         if (typeof price === 'number' && price > 0) {

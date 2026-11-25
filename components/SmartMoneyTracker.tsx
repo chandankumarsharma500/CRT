@@ -22,6 +22,7 @@ import { SmartMoneyLogic } from '../services/smartMoneyLogic';
 import { SMCZone, SMCPatternType, Trend, SMCLiquidityRaid, SMCPremiumDiscountMatrix } from '../types';
 import { ALL_INDICES } from '../services/dhanService';
 import { SMCAIAgentRefiner } from './SMCAIAgentRefiner';
+import { yahooFinanceService, YahooQuote } from '../services/yahooFinanceService';
 
 const getBadgeColor = (pattern: SMCPatternType, trend: Trend) => {
   if (pattern === 'IFVG') return 'bg-purple-500/20 text-purple-400 border-purple-500/40';
@@ -55,6 +56,7 @@ const PatternBadge: React.FC<{ zone: SMCZone }> = ({ zone }) => (
 export const SmartMoneyTracker: React.FC = () => {
   const [zonesData, setZonesData] = useState<Record<string, SMCZone[]>>({});
   const [loading, setLoading] = useState(false);
+  const [yahooQuotes, setYahooQuotes] = useState<Record<string, YahooQuote>>(() => yahooFinanceService.getAllQuotes());
   
   // Navigation tabs
   const [activeTab, setActiveTab] = useState<'ai-refiner' | 'structures' | 'liquidity' | 'ote-matrix'>('ai-refiner');
@@ -80,7 +82,11 @@ export const SmartMoneyTracker: React.FC = () => {
   useEffect(() => {
     scanMarket();
     const interval = setInterval(scanMarket, 5000);
-    return () => clearInterval(interval);
+    const unsub = yahooFinanceService.subscribe((q) => setYahooQuotes({ ...q }));
+    return () => {
+      clearInterval(interval);
+      unsub();
+    };
   }, []);
 
   // Compute aggregate stats across scanned indices
@@ -347,43 +353,30 @@ export const SmartMoneyTracker: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
-                {
-                  symbol: 'NIFTY',
-                  price: 24850,
-                  bsl: 25010,
-                  ssl: 24710,
-                  activeRaid: 'SSL Swept & Absorbed (Bullish Shift)',
-                  bias: 'BULLISH',
-                  trap: 'Retail panic sellers trapped below 24,750 support. Institutional buyers absorbing sell orders.'
-                },
-                {
-                  symbol: 'BANKNIFTY',
-                  price: 51200,
-                  bsl: 51650,
-                  ssl: 50850,
-                  activeRaid: 'BSL Liquidity Pool Targeted (Equal Highs above 51,600)',
-                  bias: 'BULLISH',
-                  trap: 'Magnet high waiting to be raided before any large institutional distribution.'
-                },
-                {
-                  symbol: 'FINNIFTY',
-                  price: 23450,
-                  bsl: 23680,
-                  ssl: 23200,
-                  activeRaid: 'Internal SSL Cleaned (5M Wick Rejection)',
-                  bias: 'BULLISH',
-                  trap: 'Late breakout sellers trapped at 23,400. Inversion FVG flipped to support.'
-                },
-                {
-                  symbol: 'SENSEX',
-                  price: 81900,
-                  bsl: 82400,
-                  ssl: 81450,
-                  activeRaid: 'Equilibrium Consolidation with EQL Magnet below',
-                  bias: 'NEUTRAL',
-                  trap: 'Do not trade middle of range; wait for BSL 82,400 sweep or SSL 81,450 sweep.'
-                }
-              ].map((item, idx) => (
+                { key: 'nifty', symbol: 'NIFTY' },
+                { key: 'bank_nifty', symbol: 'BANKNIFTY' },
+                { key: 'fin_nifty', symbol: 'FINNIFTY' },
+                { key: 'sensex', symbol: 'SENSEX' }
+              ].map(({ key, symbol }) => {
+                const q = yahooQuotes[key];
+                const price = q?.price ?? yahooFinanceService.getPriceByAssetName(symbol);
+                const bsl = Number((q?.high && q.high > price ? q.high : price * 1.0065).toFixed(2));
+                const ssl = Number((q?.low && q.low < price ? q.low : price * 0.9935).toFixed(2));
+                const isBull = (q?.changePercent ?? 0) >= 0;
+                return {
+                  symbol,
+                  price,
+                  bsl,
+                  ssl,
+                  activeRaid: isBull
+                    ? `SSL Swept & Reclaimed (${q ? `${q.changePercent >= 0 ? '+' : ''}${q.changePercent}%` : 'Live'})`
+                    : `BSL Resistance Rejecting near ₹${bsl.toLocaleString('en-IN')}`,
+                  bias: (q?.changePercent ?? 0) > 0.2 ? 'BULLISH' : (q?.changePercent ?? 0) < -0.2 ? 'BEARISH' : 'NEUTRAL',
+                  trap: isBull
+                    ? `Shorts trapped below ₹${ssl.toLocaleString('en-IN')} intraday liquidity pool; buyers targeting BSL ₹${bsl.toLocaleString('en-IN')}.`
+                    : `Watch reaction at BSL ₹${bsl.toLocaleString('en-IN')} / SSL ₹${ssl.toLocaleString('en-IN')} before fresh entry.`
+                };
+              }).map((item, idx) => (
                 <div key={idx} className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
                   <div className="flex justify-between items-center">
                     <div>
@@ -448,11 +441,20 @@ export const SmartMoneyTracker: React.FC = () => {
 
             <div className="space-y-4">
               {[
-                { symbol: 'NIFTY', price: 24850, rangeLow: 24200, rangeHigh: 25100, zone: 'DISCOUNT', percent: 41 },
-                { symbol: 'BANKNIFTY', price: 51200, rangeLow: 50100, rangeHigh: 52000, zone: 'EQUILIBRIUM', percent: 52 },
-                { symbol: 'FINNIFTY', price: 23450, rangeLow: 22800, rangeHigh: 23700, zone: 'DEEP_DISCOUNT', percent: 24 },
-                { symbol: 'CRUDEOIL', price: 6250, rangeLow: 5900, rangeHigh: 6450, zone: 'PREMIUM', percent: 68 }
-              ].map((matrix, mIdx) => (
+                { key: 'nifty', symbol: 'NIFTY' },
+                { key: 'bank_nifty', symbol: 'BANKNIFTY' },
+                { key: 'fin_nifty', symbol: 'FINNIFTY' },
+                { key: 'crude', symbol: 'CRUDEOIL' }
+              ].map(({ key, symbol }) => {
+                const q = yahooQuotes[key];
+                const price = q?.price ?? yahooFinanceService.getPriceByAssetName(symbol);
+                const rangeLow = Number((q?.low && q.low < price ? q.low * 0.995 : price * 0.985).toFixed(2));
+                const rangeHigh = Number((q?.high && q.high > price ? q.high * 1.005 : price * 1.015).toFixed(2));
+                const span = Math.max(rangeHigh - rangeLow, 1);
+                const pct = Math.max(5, Math.min(95, Math.round(((price - rangeLow) / span) * 100)));
+                const zone = pct < 35 ? 'DEEP_DISCOUNT' : pct < 48 ? 'DISCOUNT' : pct <= 55 ? 'EQUILIBRIUM' : 'PREMIUM';
+                return { symbol, price, rangeLow, rangeHigh, zone, percent: pct };
+              }).map((matrix, mIdx) => (
                 <div key={mIdx} className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                   <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                     <div>

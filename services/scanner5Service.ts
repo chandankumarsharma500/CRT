@@ -334,6 +334,10 @@ export async function fetchScannerCandles(
       const txt = await resp.text().catch(() => '');
       throw new Error(`Scanner candle fetch failed (${resp.status}): ${txt}`);
     }
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Historical OHLCV scanner requires Express backend (/api/scanner/candles) to be running.');
+    }
     const json = (await resp.json()) as {
       candlesBySymbol?: Record<string, ScannerBar[]>;
       errors?: Array<{ symbol: string; error: string }>;
